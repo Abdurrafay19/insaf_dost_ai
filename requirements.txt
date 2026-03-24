@@ -1,0 +1,26 @@
+# Web Framework
+streamlit
+
+# Core AI & Logic
+langchain
+langchain-groq
+langchain-qdrant
+langchain-huggingface
+langgraph
+qdrant-client
+
+# Embeddings & Reranking
+# (Required for local CPU inference)
+sentence-transformers
+FlagEmbedding
+torch --index-url https://download.pytorch.org/whl/cpu
+numpy
+
+# Document Processing (Lazy loaded)
+PyPDF2
+python-docx
+
+# Export Utilities
+fpdf2>=2.7.4
+arabic-reshaper
+python-bidi
