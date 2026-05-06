@@ -1,5 +1,8 @@
-# Web Framework
-streamlit
+# API Framework (Replaces Streamlit)
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
 
 # Core AI & Logic
 langchain
@@ -9,14 +12,13 @@ langchain-huggingface
 langgraph
 qdrant-client
 
-# Embeddings & Reranking
-# (Required for local CPU inference)
+# Embeddings & Reranking (CPU Optimized for HF Spaces)
 sentence-transformers
 FlagEmbedding
 torch --index-url https://download.pytorch.org/whl/cpu
 numpy
 
-# Document Processing (Lazy loaded)
+# Document Processing
 PyPDF2
 python-docx
 

@@ -1,21 +1,16 @@
-# Python bytecode
+# Python caches
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Environments
-.env
-.venv
-env/
+# Virtual Environments
 venv/
-ENV/
+env/
+.venv/
 
-# Streamlit logs and secrets
-.streamlit/secrets.toml
+# Environment Variables (CRITICAL for security)
+.env
 
-# OS generated files
+# MacOS/Windows junk
 .DS_Store
 Thumbs.db
-
-# Docker
-*.log
