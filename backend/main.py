@@ -56,12 +56,37 @@ def build_and_compile_graph():
 
     class InsafState(TypedDict):
         raw_text: str
+        is_valid: bool
         category: str
         legal_keywords: str
         precedents: List[str]
         precedent_meta: List[dict]
         final_answer: str
         audit_score: float
+        
+    def guardrail_node(state):
+        prompt = f"Is this text a valid legal scenario, question, or case? Return STRICT JSON: {{\"is_valid\": true/false}}. Text: {state['raw_text']}"
+        try:
+            raw_res = str(fast_llm.invoke(prompt).content)
+            match = re.search(r'\{.*\}', raw_res, re.S)
+            data = json.loads(match.group()) if match else {"is_valid": True}
+        except: 
+            data = {"is_valid": True} # Default to passing it through if it fails
+        
+        is_valid = data.get("is_valid", True)
+        
+        # If it's spam, pre-fill the final answer and skip the rest of the graph
+        if not is_valid:
+            return {
+                "is_valid": False, 
+                "category": "Irrelevant", 
+                "final_answer": "This does not appear to be a valid legal scenario. Please provide a relevant legal case.",
+                "audit_score": 1.0, # 100% confident it's irrelevant
+                "precedents": [],
+                "precedent_meta": []
+            }
+            
+        return {"is_valid": True}    
 
     def processor_node(state):
         prompt = f"Return STRICT JSON: {{\"category\":\"Criminal|Civil|Family\", \"keywords\":\"5 keywords\"}}. Case: {state['raw_text']}"
@@ -90,8 +115,17 @@ def build_and_compile_graph():
                 else:
                     rr_scores_list = [float(rr_scores)]
                 
-                # Each r is ((Document, qdrant_score), reranker_score)
-                ranked = sorted(zip(raw_docs, rr_scores_list), key=lambda x: x[1], reverse=True)[:3]
+                # Combine scores and filter out anything below 0.0
+                MIN_SCORE = 0.0 
+                valid_ranked = [r for r in zip(raw_docs, rr_scores_list) if float(r[1]) > MIN_SCORE]
+                
+                ranked = sorted(valid_ranked, key=lambda x: x[1], reverse=True)[:3]
+                
+                if not ranked:
+                    return {
+                        "precedents": ["No strictly relevant Pakistani law precedents were found for this specific query."],
+                        "precedent_meta": []
+                    }
                 
                 # UNPACK: Extract Doc from the inner tuple
                 final_docs = [r[0][0] for r in ranked]
@@ -115,7 +149,12 @@ def build_and_compile_graph():
 
     def reasoner_node(state):
         context = "\n".join([f"[{i+1}] Authority: {state['precedent_meta'][i]['source']}\n{p[:1500]}" for i, p in enumerate(state['precedents'])])
-        prompt = f"Using ONLY precedents: {context}. Analyze Case: {state['raw_text']}. Use [Number] citations. Keep it professional."
+        prompt = (
+            f"Using ONLY precedents: {context}. Analyze Case: {state['raw_text']}. "
+            f"Use [Number] citations. Keep it professional. "
+            f"CRITICAL: Format your response using Markdown. Use **bolding** for key legal terms and Section numbers. "
+            f"Break the analysis into structured paragraphs and use numbered lists for recommended steps."
+        )
         return {"final_answer": reasoner.invoke(prompt).content}
 
     def auditor_node(state):
@@ -123,33 +162,48 @@ def build_and_compile_graph():
         sentences = [s for s in re.split(r'(?<=[.!?])\s+', answer) if len(s) > 20]
         context = "\n".join([p[:500] for p in state['precedents']])
         
-        # 1. Much stricter prompt forcing a simple boolean array
-        audit_prompt = f"Verify claims. Return strictly a JSON array of booleans of length {len(sentences)}. Example: [true, false].\nCONTEXT: {context}\nSENTENCES: {sentences}"
+        # 1. Ask for 1s and 0s instead of booleans
+        audit_prompt = f"Verify each sentence against the context. Return ONLY a JSON array of 1s and 0s (Length: {len(sentences)}). 1=Supported, 0=Unsupported. Example: [1, 0, 1]\nCONTEXT: {context}\nSENTENCES: {sentences}"
         
         try:
             raw_audit = str(fast_llm.invoke(audit_prompt).content)
-            match = re.search(r'\[.*\]', raw_audit, re.S)
-            audit_results = json.loads(match.group()) if match else []
             
-            # 2. Safely count trues whether it returned dicts or raw booleans
-            supported = sum(1 for item in audit_results if item is True or (isinstance(item, dict) and item.get('v') is True))
+            # 2. Safely find the bracketed array
+            match = re.search(r'\[(.*?)\]', raw_audit, re.S)
             
-            # 3. Clamp the score so it absolutely cannot exceed 1.0 (100%)
-            raw_score = supported / len(sentences) if sentences else 0.0
-            score = min(1.0, raw_score)
+            if match:
+                # 3. Extract just the 1s and 0s using regex (Bypasses json.loads entirely)
+                results = re.findall(r'\b[01]\b', match.group(1))
+                
+                if results:
+                    supported = results.count('1')
+                    score = supported / len(results)
+                else:
+                    score = 0.5
+            else:
+                score = 0.5
+                
         except Exception as e: 
             print(f"Auditor parse error: {e}")
             score = 0.5 
             
-        return {"audit_score": round(score, 2)} # Rounds nicely to e.g., 0.85
+        return {"audit_score": round(score, 2)}
     
+    def route_guardrail(state):
+        # If valid, go to processor. If invalid, go straight to the END.
+        if state.get("is_valid", True):
+            return "processor"
+        return END
+
     builder = StateGraph(InsafState)
+    builder.add_node("guardrail", guardrail_node)
     builder.add_node("processor", processor_node)
     builder.add_node("retriever", retriever_node)
     builder.add_node("reasoner", reasoner_node)
     builder.add_node("auditor", auditor_node)
     
-    builder.add_edge(START, "processor")
+    builder.add_edge(START, "guardrail")
+    builder.add_conditional_edges("guardrail", route_guardrail)
     builder.add_edge("processor", "retriever")
     builder.add_edge("retriever", "reasoner")
     builder.add_edge("reasoner", "auditor")
