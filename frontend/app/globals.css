@@ -1,25 +1,25 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 :root {
-  --background: #eef2f7;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --card-foreground: #0f172a;
-  --popover: #ffffff;
-  --popover-foreground: #0f172a;
-  --primary: #0f3d5e;
-  --primary-foreground: #f8fafc;
-  --secondary: #e2e8f0;
-  --secondary-foreground: #0f172a;
-  --muted: #e2e8f0;
-  --muted-foreground: #475569;
-  --accent: #dbeafe;
-  --accent-foreground: #0f172a;
-  --destructive: #b91c1c;
+  --background: #0d0f12;
+  --foreground: #f8fafc;
+  --card: #14171d;
+  --card-foreground: #f8fafc;
+  --popover: #14171d;
+  --popover-foreground: #f8fafc;
+  --primary: #cba86a;
+  --primary-foreground: #0d0f12;
+  --secondary: #1a1e27;
+  --secondary-foreground: #f8fafc;
+  --muted: #1a1e27;
+  --muted-foreground: #94a3b8;
+  --accent: #1a1e27;
+  --accent-foreground: #f8fafc;
+  --destructive: #7f1d1d;
   --destructive-foreground: #fef2f2;
-  --border: #cbd5e1;
-  --input: #cbd5e1;
-  --ring: #0f766e;
+  --border: #262933;
+  --input: #1a1e27;
+  --ring: #cba86a;
 }
 
 @theme inline {
@@ -42,8 +42,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-playfair);
 }
 
 html {
@@ -52,12 +52,11 @@ html {
 
 body {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 32%),
-    radial-gradient(circle at top right, rgba(15, 61, 94, 0.15), transparent 24%),
-    linear-gradient(180deg, #f8fafc 0%, #eef2f7 45%, #e2e8f0 100%);
+  background: 
+    radial-gradient(circle at top right, rgba(203, 168, 106, 0.05), transparent 45%),
+    linear-gradient(180deg, var(--background) 0%, rgba(8, 9, 11, 1) 100%);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 * {

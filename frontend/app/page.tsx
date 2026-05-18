@@ -1,29 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-
 import ReactMarkdown from "react-markdown";
 import {
   ArrowRight,
   CheckCircle2,
   Gavel,
+  Landmark,
   Loader2,
   Scale,
-  ShieldCheck,
-  Sparkles,
-  TriangleAlert,
+  Search,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { analyzeCases, checkBackendHealth } from "@/lib/insafdost-api";
 import type { AnalysisCaseResult, AnalysisResponse } from "@/types/insafdost";
@@ -39,31 +29,32 @@ function formatScore(score: number): string {
 
 function getAuditTone(score: number): string {
   if (score >= 0.8) {
-    return "border-emerald-200 bg-emerald-50 text-emerald-700";
+    return "text-emerald-300 bg-emerald-500/10 ring-1 ring-emerald-500/20";
   }
 
   if (score >= 0.5) {
-    return "border-amber-200 bg-amber-50 text-amber-700";
+    return "text-amber-300 bg-amber-500/10 ring-1 ring-amber-500/20";
   }
 
-  return "border-rose-200 bg-rose-50 text-rose-700";
+  return "text-rose-300 bg-rose-500/10 ring-1 ring-rose-500/20";
 }
 
 function StatusDot({ status }: { status: BackendStatus }) {
   const classes =
     status === "connected"
-      ? "bg-emerald-500 shadow-[0_0_0_6px_rgba(16,185,129,0.12)]"
+      ? "bg-emerald-400 shadow-[0_0_0_5px_rgba(52,211,153,0.12)]"
       : status === "offline"
-        ? "bg-rose-500 shadow-[0_0_0_6px_rgba(244,63,94,0.12)]"
-        : "bg-amber-500 shadow-[0_0_0_6px_rgba(245,158,11,0.14)]";
+        ? "bg-rose-400 shadow-[0_0_0_5px_rgba(248,113,113,0.12)]"
+        : "bg-amber-400 shadow-[0_0_0_5px_rgba(251,191,36,0.12)]";
 
-  return <span className={`inline-flex h-3 w-3 rounded-full ${classes}`} />;
+  return <span className={`inline-flex h-2.5 w-2.5 rounded-full ${classes}`} />;
 }
 
 function keywordPills(keywords: string | undefined | null): string[] {
   if (!keywords || typeof keywords !== "string") {
     return [];
   }
+
   return keywords
     .split(",")
     .map((item) => item.trim())
@@ -71,152 +62,141 @@ function keywordPills(keywords: string | undefined | null): string[] {
 }
 
 function parseCases(input: string): string[] {
-  // Split by patterns like "1.", "2.", "3.", etc.
   const casePattern = /^\s*\d+\.\s+/gm;
-  
-  // Check if input contains numbered markers
+
   if (!casePattern.test(input)) {
-    // No numbered markers, treat the whole input as one case
     return [input.trim()];
   }
 
-  // Split by numbered markers (1., 2., 3., etc.)
-  const cases = input
+  return input
     .split(/^\s*\d+\.\s+/m)
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
-
-  return cases;
 }
 
-function ResultCard({ result }: { result: AnalysisCaseResult }) {
+function ResultItem({ result }: { result: AnalysisCaseResult }) {
   const keywords = keywordPills(result.legal_keywords || "");
 
   return (
-    <Card className="overflow-hidden border-slate-200/80 bg-white/90 shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-      <CardHeader className="space-y-4 border-b border-border/70 bg-slate-50/90">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">Case {result._case_num}</Badge>
-          <Badge variant="outline">{result.category}</Badge>
-          <Badge className={getAuditTone(result.audit_score)}>
-            Audit {formatScore(result.audit_score)}
-          </Badge>
-        </div>
-        <CardTitle className="text-xl text-slate-900">{result.category} analysis</CardTitle>
-        <CardDescription className="text-sm leading-6 text-slate-600">
-          Key terms: {keywords.length > 0 ? result.legal_keywords : "No keywords returned"}
-        </CardDescription>
-        {keywords.length > 0 && (
-          <div className="flex flex-wrap gap-2 pt-1">
-            {keywords.map((keyword) => (
-              <Badge key={keyword} variant="outline" className="bg-white">
-                {keyword}
-              </Badge>
-            ))}
-          </div>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-5 py-6">
-        <section className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <Scale className="h-4 w-4 text-slate-500" />
-            Scenario
-          </div>
-          <p className="rounded-2xl border border-border bg-slate-50/90 px-4 py-3 text-sm leading-7 text-slate-700">
-            {result.raw_text || "No scenario text available."}
-          </p>
-        </section>
+    <section className="relative pl-8 pb-12 last:pb-0 last:before:hidden before:absolute before:left-2.25 before:top-0 before:bottom-0 before:w-px before:bg-white/10">
+      <div className="absolute left-0 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-white/15 bg-[#0d0f12]">
+        <div className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(203,168,106,0.55)]" />
+      </div>
 
-        <section className="space-y-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <Sparkles className="h-4 w-4 text-emerald-600" />
-            Final answer
-          </div>
-          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-4 text-slate-800 prose prose-sm prose-emerald max-w-none dark:prose-invert">
-            {result.final_answer && result.final_answer.trim() ? (
-              <ReactMarkdown
-                components={{
-                  p: ({ children }) => <p className="text-sm leading-7">{children}</p>,
-                  h1: ({ children }) => <h1 className="text-lg font-bold mt-4 mb-2">{children}</h1>,
-                  h2: ({ children }) => <h2 className="text-base font-semibold mt-3 mb-2">{children}</h2>,
-                  h3: ({ children }) => <h3 className="text-sm font-semibold mt-2 mb-1">{children}</h3>,
-                  ul: ({ children }) => <ul className="list-disc list-inside space-y-1 text-sm">{children}</ul>,
-                  ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 text-sm">{children}</ol>,
-                  li: ({ children }) => <li className="text-sm">{children}</li>,
-                  strong: ({ children }) => <strong className="font-bold text-emerald-900">{children}</strong>,
-                  em: ({ children }) => <em className="italic text-slate-700">{children}</em>,
-                  code: ({ children }) => <code className="bg-emerald-100 px-1.5 py-0.5 rounded text-xs font-mono text-emerald-900">{children}</code>,
-                  blockquote: ({ children }) => <blockquote className="border-l-4 border-emerald-300 pl-3 italic text-slate-700 text-sm my-2">{children}</blockquote>,
-                }}
-              >
-                {result.final_answer}
-              </ReactMarkdown>
-            ) : (
-              <p className="text-sm text-slate-600">No final answer returned.</p>
-            )}
-          </div>
-        </section>
-
-        <Separator />
-
-        <section className="space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <Gavel className="h-4 w-4 text-slate-500" />
-            Precedents
+      <div className="space-y-6">
+        <header className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-primary/80">
+              Case {result._case_num}
+            </span>
+            <span className="h-1 w-1 rounded-full bg-white/20" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-foreground/55">
+              {result.category}
+            </span>
+            <Badge
+              variant="outline"
+              className={`ml-auto border-white/10 ${getAuditTone(result.audit_score)}`}
+            >
+              Audit {formatScore(result.audit_score)}
+            </Badge>
           </div>
 
-          <div className="space-y-3">
-            {Array.isArray(result.precedents) && result.precedents.length > 0 ? (
-              result.precedents.map((precedent, index) => {
-                const meta = result.precedent_meta?.[index];
+          <h3 className="text-2xl font-serif tracking-wide text-foreground sm:text-[1.55rem]">
+            {result.category} Judgment
+          </h3>
 
-                return (
-                  <div
-                    key={`${result._case_num}-${index}`}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm"
-                  >
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge variant="secondary">{meta?.source ?? `Authority ${index + 1}`}</Badge>
-                      <Badge variant="outline">
-                        Score {meta?.score ? meta.score.toFixed(3) : "N/A"}
-                      </Badge>
-                    </div>
-                    <div className="text-sm leading-7 text-slate-700">
-                      {precedent && precedent.trim() ? (
-                        <div className="prose prose-sm prose-slate max-w-none">
-                          <ReactMarkdown
-                            components={{
-                              p: ({ children }) => <p className="text-sm leading-6 m-0">{children}</p>,
-                              h1: ({ children }) => <h1 className="text-base font-bold mt-3 mb-2">{children}</h1>,
-                              h2: ({ children }) => <h2 className="text-sm font-semibold mt-2 mb-1">{children}</h2>,
-                              h3: ({ children }) => <h3 className="text-xs font-semibold mt-1 mb-1">{children}</h3>,
-                              ul: ({ children }) => <ul className="list-disc list-inside space-y-1 text-sm ml-2">{children}</ul>,
-                              ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 text-sm ml-2">{children}</ol>,
-                              li: ({ children }) => <li className="text-sm">{children}</li>,
-                              strong: ({ children }) => <strong className="font-semibold text-slate-900">{children}</strong>,
-                              em: ({ children }) => <em className="italic text-slate-600">{children}</em>,
-                              code: ({ children }) => <code className="bg-slate-100 px-1 py-0.5 rounded text-xs font-mono">{children}</code>,
-                            }}
-                          >
-                            {precedent}
-                          </ReactMarkdown>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-slate-600">No precedent text available.</p>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                No precedents were returned for this case.
+          {keywords.length > 0 ? (
+            <div className="flex flex-wrap gap-2 pt-1">
+              {keywords.map((keyword) => (
+                <span
+                  key={keyword}
+                  className="rounded-full border border-white/10 bg-white/4 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-foreground/55"
+                >
+                  {keyword}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </header>
+
+        <div className="grid gap-6 2xl:grid-cols-2">
+          <div className="space-y-6 2xl:border-r 2xl:border-white/5 2xl:pr-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-foreground/40">
+                <Scale className="h-3.5 w-3.5" />
+                Scenario Context
               </div>
-            )}
+              <p className="border-l border-white/10 pl-4 text-sm leading-7 text-foreground/80">
+                {result.raw_text || "No scenario text available."}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-emerald-300/80">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Synthesis and Verdict
+              </div>
+              <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-headings:font-serif prose-headings:tracking-wide prose-headings:text-foreground prose-strong:text-emerald-300 prose-code:border prose-code:border-white/10 prose-code:bg-black/40 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px] prose-code:font-mono">
+                {result.final_answer && result.final_answer.trim() ? (
+                  <ReactMarkdown>{result.final_answer}</ReactMarkdown>
+                ) : (
+                  <p className="text-sm text-foreground/45">
+                    No judgment returned.
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
-        </section>
-      </CardContent>
-    </Card>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-primary/75">
+              <Gavel className="h-3.5 w-3.5" />
+              Referenced Authorities
+            </div>
+
+            <div className="space-y-3">
+              {Array.isArray(result.precedents) &&
+              result.precedents.length > 0 ? (
+                result.precedents.map((precedent, index) => {
+                  const meta = result.precedent_meta?.[index];
+
+                  return (
+                    <div
+                      key={`${result._case_num}-${index}`}
+                      className="rounded-xl border border-white/5 bg-white/2.5 px-4 py-4 transition-colors hover:bg-white/4"
+                    >
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2">
+                        <span className="text-xs font-medium text-foreground/75">
+                          {meta?.source ?? `Authority ${index + 1}`}
+                        </span>
+                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/55">
+                          Score {meta?.score ? meta.score.toFixed(3) : "N/A"}
+                        </span>
+                      </div>
+
+                      <div className="prose prose-sm prose-invert max-w-none prose-p:m-0 prose-p:leading-7 prose-headings:font-serif prose-strong:text-foreground">
+                        {precedent && precedent.trim() ? (
+                          <ReactMarkdown>{precedent}</ReactMarkdown>
+                        ) : (
+                          <p className="text-sm text-foreground/45">
+                            No precedent text available.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/10 bg-white/2 px-4 py-4 text-sm text-foreground/45">
+                  <Search className="h-4 w-4 text-foreground/30" />
+                  No precedents were found for this scenario.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -225,12 +205,13 @@ export default function Home() {
   const [analysis, setAnalysis] = useState<AnalysisResponse | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [backendStatus, setBackendStatus] = useState<BackendStatus>("loading");
-  const [statusMessage, setStatusMessage] = useState("Checking backend...");
+  const [statusMessage, setStatusMessage] = useState("Checking systems...");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const parsedCaseCount = useMemo(() => {
-    return parseCases(scenario).length;
-  }, [scenario]);
+  const parsedCaseCount = useMemo(
+    () => parseCases(scenario).length,
+    [scenario],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -253,7 +234,8 @@ export default function Home() {
 
     const totalCases = analysis.data.length;
     const averageAudit =
-      analysis.data.reduce((sum, current) => sum + current.audit_score, 0) / totalCases;
+      analysis.data.reduce((sum, current) => sum + current.audit_score, 0) /
+      totalCases;
 
     return {
       totalCases,
@@ -265,14 +247,14 @@ export default function Home() {
     const trimmedScenario = scenario.trim();
 
     if (!trimmedScenario) {
-      setErrorMessage("Please enter a legal scenario before analyzing.");
+      setErrorMessage("Please enter a legal scenario before proceeding.");
       return;
     }
 
     const parsedCases = parseCases(trimmedScenario);
 
     if (parsedCases.length === 0) {
-      setErrorMessage("No cases found in the input.");
+      setErrorMessage("No cases identified in the submitted scenario.");
       return;
     }
 
@@ -285,7 +267,7 @@ export default function Home() {
     } catch (error) {
       setAnalysis(null);
       setErrorMessage(
-        error instanceof Error ? error.message : "Unable to analyze the cases.",
+        error instanceof Error ? error.message : "Analysis failed.",
       );
     } finally {
       setIsAnalyzing(false);
@@ -293,164 +275,187 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="rounded-4xl border border-white/70 bg-white/80 px-5 py-5 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:px-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-slate-200">
-                <ShieldCheck className="h-7 w-7" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  <TriangleAlert className="h-3.5 w-3.5" />
-                  Pakistani Law Analysis
-                </div>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+    <div className="flex min-h-screen flex-col overflow-hidden bg-[#0d0f12] text-foreground selection:bg-primary/20 selection:text-primary">
+      <header className="w-full border-b border-white/10 bg-[#0d0f12]/95 px-6 py-4 backdrop-blur-xl sm:px-8">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary shadow-[0_0_20px_rgba(203,168,106,0.12)]">
+              <Landmark className="h-5 w-5" />
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="font-serif text-lg tracking-wide sm:text-xl">
                   InsafDost AI
                 </h1>
-                <p className="mt-1 text-sm text-slate-600">
-                  Structured analysis for legal scenarios with cited authorities and audit scoring.
-                </p>
+                <span className="rounded-full border border-white/10 bg-white/4 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-foreground/45">
+                  Core
+                </span>
               </div>
-            </div>
-
-            <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-              <StatusDot status={backendStatus} />
-              <div>
-                <div className="font-semibold text-slate-900">Backend status</div>
-                <div className="text-xs text-slate-500">{statusMessage}</div>
-              </div>
+              <p className="mt-1 text-[11px] uppercase tracking-[0.24em] text-foreground/40">
+                Pakistani Jurisprudence Engine
+              </p>
             </div>
           </div>
-        </header>
 
-        <main className="grid flex-1 gap-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-          <Card className="h-full border-slate-200/80 bg-white/85 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-sm">
-            <CardHeader className="space-y-3 border-b border-border/70 bg-slate-50/90">
-              <Badge variant="secondary" className="w-fit">
-                Input Panel
-              </Badge>
-              <CardTitle className="text-2xl text-slate-900">Describe the case</CardTitle>
-              <CardDescription className="text-sm leading-6 text-slate-600">
-                Enter one or more legal scenarios. Use numbered markers (1., 2., 3., etc.) to separate multiple cases for batch analysis.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5 pt-6">
-              <form
-                className="space-y-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  void handleAnalyze();
-                }}
-              >
-                <Textarea
-                  value={scenario}
-                  onChange={(event) => setScenario(event.target.value)}
-                  placeholder="Enter one or more cases. Separate multiple cases with numbered markers (1., 2., 3., etc.)"
-                  aria-label="Legal scenario input"
-                  className="min-h-72.5 bg-white"
-                />
+          <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/3 px-4 py-2 text-xs text-foreground/70">
+            <StatusDot status={backendStatus} />
+            <span className="font-medium uppercase tracking-[0.22em] text-foreground/55">
+              {backendStatus === "connected"
+                ? "Systems Nominal"
+                : statusMessage}
+            </span>
+          </div>
+        </div>
+      </header>
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="text-sm text-slate-500">
-                    {parsedCaseCount === 1 ? (
-                      <>1 case ready to analyze</>
-                    ) : (
-                      <>{parsedCaseCount} cases found (use "1.", "2.", etc. to separate)</>
-                    )}
-                  </div>
-                  <Button type="submit" size="lg" disabled={isAnalyzing || parsedCaseCount === 0}>
-                    {isAnalyzing ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Analyzing {parsedCaseCount} {parsedCaseCount === 1 ? "case" : "cases"}
-                      </>
-                    ) : (
-                      <>
-                        Analyze {parsedCaseCount === 1 ? "Case" : "Cases"}
-                        <ArrowRight className="h-4 w-4" />
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
+      <main className="flex min-h-0 flex-1 overflow-hidden">
+        <section className="flex w-[35%] min-w-[320px] max-w-130 flex-col gap-8 overflow-y-auto border-r border-white/10 px-8 py-8 custom-scrollbar">
+          <div className="space-y-3">
+            <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-primary/75">
+              Scenario Intake
+            </div>
+            <h2 className="font-serif text-3xl tracking-wide text-foreground">
+              Draft the case
+            </h2>
+          </div>
 
-              {errorMessage ? (
-                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                  {errorMessage}
-                </div>
-              ) : null}
+          <form
+            className="flex min-h-0 flex-1 flex-col gap-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void handleAnalyze();
+            }}
+          >
+            <div className="border-b border-white/10 pb-5">
+              <Textarea
+                value={scenario}
+                onChange={(event) => setScenario(event.target.value)}
+                placeholder="Describe the incident, evidence, and legal question here. In cases involving multiple incidents, please number each one for clarity (e.g., '1. Incident one details... 2. Incident two details...')."
+                aria-label="Legal scenario input"
+                className="bg-transparent p-0 text-[15px] leading-8 text-foreground/95 placeholder:text-foreground/25"
+              />
+            </div>
 
-              <div className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 sm:grid-cols-2">
-                <div className="rounded-xl bg-white px-4 py-3 shadow-sm">
-                  <div className="font-semibold text-slate-900">Endpoint</div>
-                  <div className="mt-1 break-all">POST /analyze</div>
-                </div>
-                <div className="rounded-xl bg-white px-4 py-3 shadow-sm">
-                  <div className="font-semibold text-slate-900">Payload shape</div>
-                  <div className="mt-1 break-all text-xs">{`{ cases: ["case1", "case2", ...] }`}</div>
-                </div>
+            {errorMessage ? (
+              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                {errorMessage}
               </div>
-            </CardContent>
-          </Card>
+            ) : null}
 
-          <Card className="h-full border-slate-200/80 bg-white/85 shadow-[0_18px_45px_rgba(15,23,42,0.08)] backdrop-blur-sm">
-            <CardHeader className="space-y-3 border-b border-border/70 bg-slate-50/90">
-              <Badge variant="secondary" className="w-fit">
-                Results Feed
-              </Badge>
-              <CardTitle className="text-2xl text-slate-900">Structured response</CardTitle>
-              <CardDescription className="text-sm leading-6 text-slate-600">
-                Displays the API response in a readable format for each analyzed case.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5 pt-6">
-              {analysisSummary ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 shadow-sm">
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Cases returned
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold text-slate-950">
-                      {analysisSummary.totalCases}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 shadow-sm">
-                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                      Average audit
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold text-slate-950">
-                      {formatScore(analysisSummary.averageAudit)}
-                    </div>
-                  </div>
-                </div>
-              ) : null}
+            <div className="flex flex-col gap-4 border-t border-white/10 pt-4">
+              <div className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.22em] text-foreground/40">
+                <span>Engine: Legal AI</span>
+                <span>
+                  {parsedCaseCount} case{parsedCaseCount === 1 ? "" : "s"}{" "}
+                  detected
+                </span>
+              </div>
 
-              {analysis?.status === "success" && analysis.data.length > 0 ? (
-                <div className="space-y-4">
-                  {analysis.data.map((result) => (
-                    <ResultCard key={result._case_num} result={result} />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex min-h-80 flex-col items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-12 text-center">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-slate-500 shadow-sm">
-                    <CheckCircle2 className="h-7 w-7" />
-                  </div>
-                  <h2 className="mt-4 text-lg font-semibold text-slate-900">
-                    Waiting for analysis
+              <Button
+                type="submit"
+                disabled={isAnalyzing || parsedCaseCount === 0}
+                className="group flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary font-semibold tracking-wide text-primary-foreground shadow-[0_10px_30px_rgba(203,168,106,0.18)] transition-transform hover:-translate-y-px hover:bg-primary/90"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Synthesizing...
+                  </>
+                ) : (
+                  <>
+                    Execute Analysis
+                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </section>
+
+        <section className="flex min-w-0 flex-1 flex-col overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(203,168,106,0.04),transparent_45%)] px-8 py-8 custom-scrollbar sm:px-10 lg:px-12">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
+            <div className="space-y-3 border-b border-white/10 pb-6">
+              <div className="text-[10px] font-bold uppercase tracking-[0.3em] text-foreground/40">
+                Output Synthesis
+              </div>
+              <div className="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <h2 className="font-serif text-3xl tracking-wide text-foreground sm:text-4xl">
+                    Jurisprudential findings
                   </h2>
-                  <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">
-                    Once you submit a scenario, the response data will render here with the
-                    category, keywords, precedents, final answer, and audit score.
-                  </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </main>
-      </div>
+
+                {analysisSummary ? (
+                  <div className="flex gap-3">
+                    <div className="rounded-xl border border-white/5 bg-white/3 px-4 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/40">
+                        Cases
+                      </div>
+                      <div className="mt-1 text-2xl font-serif text-foreground">
+                        {analysisSummary.totalCases}
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-white/5 bg-white/3 px-4 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-foreground/40">
+                        Avg audit
+                      </div>
+                      <div className="mt-1 text-2xl font-serif text-foreground">
+                        {formatScore(analysisSummary.averageAudit)}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            {analysis?.status === "success" && analysis.data.length > 0 ? (
+              <div className="space-y-10">
+                {analysis.data.map((result) => (
+                  <ResultItem key={result._case_num} result={result} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex min-h-105 flex-col items-center justify-center rounded-none border border-dashed border-white/10 bg-white/2 px-8 py-16 text-center">
+                <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-black/20 text-primary/75">
+                  <Scale className="h-8 w-8" />
+                </div>
+                <h3 className="font-serif text-2xl tracking-wide text-foreground">
+                  Awaiting submission
+                </h3>
+                <p className="mt-3 max-w-md text-sm leading-7 text-foreground/48">
+                  The analysis stream will appear here after you submit a
+                  scenario.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            .custom-scrollbar::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-track {
+              background: rgba(255, 255, 255, 0.02);
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+              background: rgba(255, 255, 255, 0.12);
+              border-radius: 999px;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+              background: rgba(255, 255, 255, 0.18);
+            }
+          `,
+        }}
+      />
     </div>
   );
 }
