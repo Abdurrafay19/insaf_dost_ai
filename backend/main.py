@@ -3,7 +3,7 @@ import json
 import gc
 import re
 import numpy as np # Added for robust score handling
-from typing import TypedDict, List, Dict, Any
+from typing import TypedDict, List, Dict, Any, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,6 +34,178 @@ class CaseResponse(BaseModel):
     status: str
     data: List[Dict[str, Any]]
 
+class GuardrailOutput(BaseModel):
+    is_valid: bool
+
+class ProcessorOutput(BaseModel):
+    category: Literal["Criminal", "Civil", "Family"]
+    keywords: str
+
+class InsafState(TypedDict):
+    raw_text: str
+    is_valid: bool
+    category: str
+    legal_keywords: str
+    precedents: List[str]
+    precedent_meta: List[dict]
+    final_answer: str
+    audit_score: float
+
+class GraphNodes:
+    def __init__(self, reasoner, fast_llm, vectorstore, reranker):
+        self.reasoner = reasoner
+        self.fast_llm = fast_llm
+        self.vectorstore = vectorstore
+        self.reranker = reranker
+        try:
+            self.guardrail_llm = fast_llm.with_structured_output(GuardrailOutput)
+            self.processor_llm = fast_llm.with_structured_output(ProcessorOutput)
+        except Exception as e:
+            print(f"Structured output disabled: {e}")
+            self.guardrail_llm = None
+            self.processor_llm = None
+
+    def guardrail_node(self, state: InsafState):
+        prompt = (
+            "Is this text a valid legal scenario, question, or case? "
+            f"Text: {state['raw_text']}"
+        )
+        try:
+            if self.guardrail_llm is None:
+                raise RuntimeError("Structured output not available.")
+            data = self.guardrail_llm.invoke(prompt)
+            is_valid = bool(data.is_valid)
+        except Exception:
+            is_valid = True
+
+        if not is_valid:
+            return {
+                "is_valid": False,
+                "category": "Irrelevant",
+                "final_answer": "This does not appear to be a valid legal scenario. Please provide a relevant legal case.",
+                "audit_score": 1.0,
+                "precedents": [],
+                "precedent_meta": []
+            }
+
+        return {"is_valid": True}
+
+    def processor_node(self, state: InsafState):
+        prompt = (
+            "Classify the case as Criminal, Civil, or Family and provide 5 keywords. "
+            f"Case: {state['raw_text']}"
+        )
+        try:
+            if self.processor_llm is None:
+                raise RuntimeError("Structured output not available.")
+            data = self.processor_llm.invoke(prompt)
+            category = data.category if data.category in {"Criminal", "Civil", "Family"} else "Civil"
+            keywords = data.keywords or state["raw_text"][:50]
+        except Exception:
+            category = "Civil"
+            keywords = state["raw_text"][:50]
+        return {"category": category, "legal_keywords": keywords}
+
+    def retriever_node(self, state: InsafState):
+        query = state["legal_keywords"]
+        raw_docs = self.vectorstore.similarity_search_with_score(query, k=10)
+
+        if self.reranker and raw_docs:
+            full_query = f"Law of Pakistan regarding {state['category']}: {state['legal_keywords']}"
+            pairs = [[full_query, doc.page_content[:1200]] for doc, _ in raw_docs]
+
+            try:
+                rr_scores = self.reranker.predict(pairs)
+                if isinstance(rr_scores, (list, tuple, np.ndarray)):
+                    rr_scores_list = [float(x) for x in rr_scores]
+                else:
+                    rr_scores_list = [float(rr_scores)]
+
+                MIN_SCORE = 0.0
+                valid_ranked = [
+                    item for item in zip(raw_docs, rr_scores_list)
+                    if float(item[1]) > MIN_SCORE
+                ]
+                ranked = sorted(valid_ranked, key=lambda x: x[1], reverse=True)[:3]
+
+                if not ranked:
+                    return {
+                        "precedents": ["No strictly relevant Pakistani law precedents were found for this specific query."],
+                        "precedent_meta": [{"source": "System", "score": 0.0}]
+                    }
+
+                final_docs = [doc for ((doc, _), score) in ranked]
+                final_scores = [float(score) for ((doc, _), score) in ranked]
+            except Exception as e:
+                print(f"⚠️ Reranking failed, falling back: {e}")
+                final_docs = [doc for (doc, _) in raw_docs[:3]]
+                final_scores = [score for (_, score) in raw_docs[:3]]
+        else:
+            final_docs = [doc for (doc, _) in raw_docs[:3]]
+            final_scores = [score for (_, score) in raw_docs[:3]]
+
+        return {
+            "precedents": [doc.page_content for doc in final_docs],
+            "precedent_meta": [
+                {"source": doc.metadata.get("source", "Unknown"), "score": round(float(score), 3)}
+                for doc, score in zip(final_docs, final_scores)
+            ]
+        }
+
+    def reasoner_node(self, state: InsafState):
+        precedents = state.get("precedents", [])
+        precedent_meta = state.get("precedent_meta", [])
+        context_lines = []
+        for i, p in enumerate(precedents):
+            meta_item = precedent_meta[i] if i < len(precedent_meta) else {}
+            source = meta_item.get("source", "Unknown") if isinstance(meta_item, dict) else "Unknown"
+            context_lines.append(f"[{i+1}] Authority: {source}\n{p[:1500]}")
+        context = "\n".join(context_lines)
+        prompt = (
+            f"Using ONLY precedents: {context}. Analyze Case: {state['raw_text']}. "
+            f"Use [Number] citations. Keep it professional. "
+            f"CRITICAL: Format your response using Markdown. Use **bolding** for key legal terms and Section numbers. "
+            f"Break the analysis into structured paragraphs and use numbered lists for recommended steps."
+        )
+        return {"final_answer": self.reasoner.invoke(prompt).content}
+
+    def auditor_node(self, state: InsafState):
+        answer = state["final_answer"]
+        sentences = [s for s in re.split(r'(?<=[.!?])\s+', answer) if len(s) > 20]
+        context = "\n".join([p[:500] for p in state["precedents"]])
+
+        audit_prompt = (
+            "Verify each sentence against the context. "
+            f"Return ONLY a JSON array of 1s and 0s (Length: {len(sentences)}). "
+            "1=Supported, 0=Unsupported. Example: [1, 0, 1]\n"
+            f"CONTEXT: {context}\nSENTENCES: {sentences}"
+        )
+
+        try:
+            raw_audit = str(self.fast_llm.invoke(audit_prompt).content)
+            match = re.search(r'\[(.*?)\]', raw_audit, re.S)
+
+            if match:
+                results = re.findall(r'\b[01]\b', match.group(1))
+
+                if results:
+                    supported = results.count('1')
+                    score = supported / len(results)
+                else:
+                    score = 0.5
+            else:
+                score = 0.5
+        except Exception as e:
+            print(f"Auditor parse error: {e}")
+            score = 0.5
+
+        return {"audit_score": round(score, 2)}
+
+def route_guardrail(state: InsafState):
+    if state.get("is_valid", True):
+        return "processor"
+    return END
+
 # ── 3. RESOURCE INITIALIZATION ────────────────────────────────────────────────
 def build_and_compile_graph():
     print("Initializing AI Models and Vector Store...")
@@ -54,160 +226,19 @@ def build_and_compile_graph():
     
     gc.collect()
 
-    class InsafState(TypedDict):
-        raw_text: str
-        is_valid: bool
-        category: str
-        legal_keywords: str
-        precedents: List[str]
-        precedent_meta: List[dict]
-        final_answer: str
-        audit_score: float
-        
-    def guardrail_node(state):
-        prompt = f"Is this text a valid legal scenario, question, or case? Return STRICT JSON: {{\"is_valid\": true/false}}. Text: {state['raw_text']}"
-        try:
-            raw_res = str(fast_llm.invoke(prompt).content)
-            match = re.search(r'\{.*\}', raw_res, re.S)
-            data = json.loads(match.group()) if match else {"is_valid": True}
-        except: 
-            data = {"is_valid": True} # Default to passing it through if it fails
-        
-        is_valid = data.get("is_valid", True)
-        
-        # If it's spam, pre-fill the final answer and skip the rest of the graph
-        if not is_valid:
-            return {
-                "is_valid": False, 
-                "category": "Irrelevant", 
-                "final_answer": "This does not appear to be a valid legal scenario. Please provide a relevant legal case.",
-                "audit_score": 1.0, # 100% confident it's irrelevant
-                "precedents": [],
-                "precedent_meta": []
-            }
-            
-        return {"is_valid": True}    
-
-    def processor_node(state):
-        prompt = f"Return STRICT JSON: {{\"category\":\"Criminal|Civil|Family\", \"keywords\":\"5 keywords\"}}. Case: {state['raw_text']}"
-        try:
-            raw_res = str(fast_llm.invoke(prompt).content)
-            match = re.search(r'\{.*\}', raw_res, re.S)
-            data = json.loads(match.group()) if match else {"category": "Civil", "keywords": state['raw_text'][:50]}
-        except: 
-            data = {"category": "Civil", "keywords": state['raw_text'][:50]}
-        return {"category": data.get("category", "Civil"), "legal_keywords": data.get("keywords", "")}
-
-    def retriever_node(state):
-        query = state["legal_keywords"]
-        # raw_docs is a list of (Document, score)
-        raw_docs = vectorstore.similarity_search_with_score(query, k=10) 
-        
-        if reranker and raw_docs:
-            full_query = f"Law of Pakistan regarding {state['category']}: {state['legal_keywords']}"
-            pairs = [[full_query, d[0].page_content[:1200]] for d in raw_docs]
-            
-            try:
-                rr_scores = reranker.predict(pairs)
-                # Ensure scores are a list of floats
-                if isinstance(rr_scores, (list, tuple, np.ndarray)):
-                    rr_scores_list = [float(x) for x in rr_scores]
-                else:
-                    rr_scores_list = [float(rr_scores)]
-                
-                # Combine scores and filter out anything below 0.0
-                MIN_SCORE = 0.0 
-                valid_ranked = [r for r in zip(raw_docs, rr_scores_list) if float(r[1]) > MIN_SCORE]
-                
-                ranked = sorted(valid_ranked, key=lambda x: x[1], reverse=True)[:3]
-                
-                if not ranked:
-                    return {
-                        "precedents": ["No strictly relevant Pakistani law precedents were found for this specific query."],
-                        "precedent_meta": [{"source": "System", "score": 0.0}]
-                    }
-                
-                # UNPACK: Extract Doc from the inner tuple
-                final_docs = [r[0][0] for r in ranked]
-                final_scores = [float(r[1]) for r in ranked]
-            except Exception as e:
-                print(f"⚠️ Reranking failed, falling back: {e}")
-                final_docs = [d[0] for d in raw_docs[:3]]
-                final_scores = [d[1] for d in raw_docs[:3]]
-        else:
-            # Fallback if reranker is off - UNPACK Doc from (Doc, Score)
-            final_docs = [d[0] for d in raw_docs[:3]]
-            final_scores = [d[1] for d in raw_docs[:3]]
-        
-        return {
-            "precedents": [doc.page_content for doc in final_docs],
-            "precedent_meta": [
-                {"source": doc.metadata.get("source", "Unknown"), "score": round(final_scores[i], 3)} 
-                for i, doc in enumerate(final_docs)
-            ]
-        }
-
-    def reasoner_node(state):
-        precedents = state.get("precedents", [])
-        precedent_meta = state.get("precedent_meta", [])
-        context_lines = []
-        for i, p in enumerate(precedents):
-            meta_item = precedent_meta[i] if i < len(precedent_meta) else {}
-            source = meta_item.get("source", "Unknown") if isinstance(meta_item, dict) else "Unknown"
-            context_lines.append(f"[{i+1}] Authority: {source}\n{p[:1500]}")
-        context = "\n".join(context_lines)
-        prompt = (
-            f"Using ONLY precedents: {context}. Analyze Case: {state['raw_text']}. "
-            f"Use [Number] citations. Keep it professional. "
-            f"CRITICAL: Format your response using Markdown. Use **bolding** for key legal terms and Section numbers. "
-            f"Break the analysis into structured paragraphs and use numbered lists for recommended steps."
-        )
-        return {"final_answer": reasoner.invoke(prompt).content}
-
-    def auditor_node(state):
-        answer = state["final_answer"]
-        sentences = [s for s in re.split(r'(?<=[.!?])\s+', answer) if len(s) > 20]
-        context = "\n".join([p[:500] for p in state['precedents']])
-        
-        # 1. Ask for 1s and 0s instead of booleans
-        audit_prompt = f"Verify each sentence against the context. Return ONLY a JSON array of 1s and 0s (Length: {len(sentences)}). 1=Supported, 0=Unsupported. Example: [1, 0, 1]\nCONTEXT: {context}\nSENTENCES: {sentences}"
-        
-        try:
-            raw_audit = str(fast_llm.invoke(audit_prompt).content)
-            
-            # 2. Safely find the bracketed array
-            match = re.search(r'\[(.*?)\]', raw_audit, re.S)
-            
-            if match:
-                # 3. Extract just the 1s and 0s using regex (Bypasses json.loads entirely)
-                results = re.findall(r'\b[01]\b', match.group(1))
-                
-                if results:
-                    supported = results.count('1')
-                    score = supported / len(results)
-                else:
-                    score = 0.5
-            else:
-                score = 0.5
-                
-        except Exception as e: 
-            print(f"Auditor parse error: {e}")
-            score = 0.5 
-            
-        return {"audit_score": round(score, 2)}
-    
-    def route_guardrail(state):
-        # If valid, go to processor. If invalid, go straight to the END.
-        if state.get("is_valid", True):
-            return "processor"
-        return END
+    nodes = GraphNodes(
+        reasoner=reasoner,
+        fast_llm=fast_llm,
+        vectorstore=vectorstore,
+        reranker=reranker
+    )
 
     builder = StateGraph(InsafState)
-    builder.add_node("guardrail", guardrail_node)
-    builder.add_node("processor", processor_node)
-    builder.add_node("retriever", retriever_node)
-    builder.add_node("reasoner", reasoner_node)
-    builder.add_node("auditor", auditor_node)
+    builder.add_node("guardrail", nodes.guardrail_node)
+    builder.add_node("processor", nodes.processor_node)
+    builder.add_node("retriever", nodes.retriever_node)
+    builder.add_node("reasoner", nodes.reasoner_node)
+    builder.add_node("auditor", nodes.auditor_node)
     
     builder.add_edge(START, "guardrail")
     builder.add_conditional_edges("guardrail", route_guardrail)
