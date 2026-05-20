@@ -62,14 +62,17 @@ function keywordPills(keywords: string | undefined | null): string[] {
 }
 
 function parseCases(input: string): string[] {
-  const casePattern = /^\s*\d+\.\s+/gm;
+  const trimmedInput = input.trim();
+  const startsWithCaseNumber = /^\s*\d+\.\s+/.test(trimmedInput);
 
-  if (!casePattern.test(input)) {
-    return [input.trim()];
+  if (!startsWithCaseNumber) {
+    return trimmedInput ? [trimmedInput] : [];
   }
 
-  return input
-    .split(/^\s*\d+\.\s+/m)
+  const splitPattern = /^\s*\d+\.\s+|[.!?]\s*\d+\.\s+/m;
+
+  return trimmedInput
+    .split(splitPattern)
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
 }
@@ -433,29 +436,6 @@ export default function Home() {
         </section>
       </main>
 
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            .custom-scrollbar::-webkit-scrollbar {
-              width: 8px;
-              height: 8px;
-            }
-
-            .custom-scrollbar::-webkit-scrollbar-track {
-              background: rgba(255, 255, 255, 0.02);
-            }
-
-            .custom-scrollbar::-webkit-scrollbar-thumb {
-              background: rgba(255, 255, 255, 0.12);
-              border-radius: 999px;
-            }
-
-            .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-              background: rgba(255, 255, 255, 0.18);
-            }
-          `,
-        }}
-      />
     </div>
   );
 }
