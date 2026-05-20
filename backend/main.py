@@ -124,7 +124,7 @@ def build_and_compile_graph():
                 if not ranked:
                     return {
                         "precedents": ["No strictly relevant Pakistani law precedents were found for this specific query."],
-                        "precedent_meta": []
+                        "precedent_meta": [{"source": "System", "score": 0.0}]
                     }
                 
                 # UNPACK: Extract Doc from the inner tuple
@@ -148,7 +148,14 @@ def build_and_compile_graph():
         }
 
     def reasoner_node(state):
-        context = "\n".join([f"[{i+1}] Authority: {state['precedent_meta'][i]['source']}\n{p[:1500]}" for i, p in enumerate(state['precedents'])])
+        precedents = state.get("precedents", [])
+        precedent_meta = state.get("precedent_meta", [])
+        context_lines = []
+        for i, p in enumerate(precedents):
+            meta_item = precedent_meta[i] if i < len(precedent_meta) else {}
+            source = meta_item.get("source", "Unknown") if isinstance(meta_item, dict) else "Unknown"
+            context_lines.append(f"[{i+1}] Authority: {source}\n{p[:1500]}")
+        context = "\n".join(context_lines)
         prompt = (
             f"Using ONLY precedents: {context}. Analyze Case: {state['raw_text']}. "
             f"Use [Number] citations. Keep it professional. "
