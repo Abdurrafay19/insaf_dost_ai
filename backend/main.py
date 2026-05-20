@@ -249,7 +249,7 @@ async def health_check():
     return {"status": "healthy", "message": "InsafDost API is running."}
 
 @app.post("/analyze", response_model=CaseResponse)
-async def analyze_cases(request: CaseRequest):
+def analyze_cases(request: CaseRequest):
     if not insaf_graph:
         raise HTTPException(status_code=503, detail="AI Graph not initialized.")
     if not request.cases:
@@ -261,7 +261,6 @@ async def analyze_cases(request: CaseRequest):
             res = dict(insaf_graph.invoke({"raw_text": case_text})) # type: ignore
             res['_case_num'] = i + 1
             results.append(res)
-            gc.collect()
         return {"status": "success", "data": results}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")
