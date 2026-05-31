@@ -69,9 +69,7 @@ export async function checkBackendHealth(
   }
 }
 
-export async function analyzeCases(
-  cases: string[],
-): Promise<AnalysisResponse> {
+export async function analyzeCases(cases: string[]): Promise<AnalysisResponse> {
   const requestBody: AnalysisCaseRequest = { cases };
 
   const response = await fetch(buildApiUrl("/analyze"), {
