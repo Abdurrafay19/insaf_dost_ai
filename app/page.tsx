@@ -5,6 +5,8 @@ import ReactMarkdown from "react-markdown";
 import {
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Gavel,
   Landmark,
   Loader2,
@@ -31,11 +33,9 @@ function getAuditTone(score: number): string {
   if (score >= 0.8) {
     return "text-emerald-300 bg-emerald-500/10 ring-1 ring-emerald-500/20";
   }
-
   if (score >= 0.5) {
     return "text-amber-300 bg-amber-500/10 ring-1 ring-amber-500/20";
   }
-
   return "text-rose-300 bg-rose-500/10 ring-1 ring-rose-500/20";
 }
 
@@ -59,7 +59,7 @@ function keywordPills(keywords: string | undefined | null): string[] {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
-    
+
   return Array.from(new Set(parsed));
 }
 
@@ -79,135 +79,202 @@ function parseCases(input: string): string[] {
     .filter((item) => item.length > 0);
 }
 
-function ResultItem({ result }: { result: AnalysisCaseResult }) {
-  const keywords = keywordPills(result.legal_keywords || "");
-
-  // GUARANTEE CLEAN MARKDOWN: Aggressively parse escaped JSON newlines
-  const cleanMarkdown = (result.final_answer || "").replace(/\\n/g, "\n");
+function PrecedentItem({
+  precedent,
+  meta,
+  index,
+}: {
+  precedent: string;
+  meta: any;
+  index: number;
+}) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const cleanPrecedent = (precedent || "").replace(/\\n/g, "\n");
 
   return (
-    <section className="relative pl-8 pb-12 last:pb-0 last:before:hidden before:absolute before:left-2.25 before:top-0 before:bottom-0 before:w-px before:bg-white/10">
-      <div className="absolute left-0 top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-white/15 bg-[#0d0f12]">
+    <div className="rounded-xl border border-white/5 bg-white/2.5 px-4 py-4 transition-colors hover:bg-white/4">
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="group flex w-full items-center justify-between gap-2 text-left outline-none"
+      >
+        <div className="flex flex-1 items-center gap-3">
+          <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-white/10 bg-white/5 text-foreground/50 transition-colors group-hover:bg-white/10 group-hover:text-foreground/80">
+            {isExpanded ? (
+              <ChevronUp className="h-3 w-3" />
+            ) : (
+              <ChevronDown className="h-3 w-3" />
+            )}
+          </div>
+          <span className="text-xs font-medium text-foreground/75 transition-colors group-hover:text-foreground">
+            {meta?.source ?? `Authority ${index + 1}`}
+          </span>
+        </div>
+        <span className="shrink-0 text-[10px] font-mono uppercase tracking-[0.18em] text-primary/55">
+          Score {meta?.score ? meta.score.toFixed(3) : "N/A"}
+        </span>
+      </button>
+
+      {isExpanded && (
+        <div className="mt-4 animate-in fade-in slide-in-from-top-1 border-t border-white/5 pt-4 duration-200">
+          <div className="prose prose-sm prose-invert max-w-none prose-p:m-0 prose-p:leading-7 prose-headings:font-serif prose-strong:text-foreground">
+            {cleanPrecedent.trim() ? (
+              <ReactMarkdown>{cleanPrecedent}</ReactMarkdown>
+            ) : (
+              <p className="text-sm text-foreground/45">
+                No precedent text available.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultItem({
+  result,
+  isInitiallyExpanded,
+}: {
+  result: AnalysisCaseResult;
+  isInitiallyExpanded: boolean;
+}) {
+  const keywords = keywordPills(result.legal_keywords || "");
+  const cleanMarkdown = (result.final_answer || "").replace(/\\n/g, "\n");
+
+  const [isCaseExpanded, setIsCaseExpanded] = useState(isInitiallyExpanded);
+  const [isContextExpanded, setIsContextExpanded] = useState(false);
+
+  return (
+    <section className="relative pl-8 pb-6 last:pb-0 last:before:hidden before:absolute before:left-[9px] before:top-4 before:bottom-0 before:w-px before:bg-white/10">
+      <div className="absolute left-0 top-[14px] flex h-5 w-5 items-center justify-center rounded-full border border-white/15 bg-[#0d0f12]">
         <div className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(203,168,106,0.55)]" />
       </div>
 
       <div className="space-y-6">
-        <header className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-bold uppercase tracking-[0.28em] text-primary/80">
+        <button
+          onClick={() => setIsCaseExpanded(!isCaseExpanded)}
+          className="group flex w-full items-center justify-between rounded-xl border border-white/5 bg-white/2 px-5 py-3.5 outline-none transition-all hover:border-white/10 hover:bg-white/4 hover:shadow-md hover:shadow-black/20"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-primary/90">
               Case {result._case_num}
             </span>
             <span className="h-1 w-1 rounded-full bg-white/20" />
-            <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-foreground/55">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-foreground/60">
               {result.category}
             </span>
+          </div>
+
+          <div className="flex items-center gap-4">
             <Badge
               variant="outline"
-              className={`ml-auto border-white/10 ${getAuditTone(result.audit_score)}`}
+              className={`border-white/10 px-2 py-0.5 text-[10px] ${getAuditTone(result.audit_score)}`}
             >
               Audit {formatScore(result.audit_score)}
             </Badge>
-          </div>
-
-          <h3 className="text-2xl font-serif tracking-wide text-foreground sm:text-[1.55rem]">
-            {result.category} Judgment
-          </h3>
-
-          {keywords.length > 0 ? (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {keywords.map((keyword, index) => (
-                <span
-                  key={`${keyword}-${index}`}
-                  className="rounded-full border border-white/10 bg-white/4 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-foreground/55"
-                >
-                  {keyword}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </header>
-
-        <div className="grid gap-6 2xl:grid-cols-2">
-          <div className="space-y-6 2xl:border-r 2xl:border-white/5 2xl:pr-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-foreground/40">
-                <Scale className="h-3.5 w-3.5" />
-                Scenario Context
-              </div>
-              <p className="border-l border-white/10 pl-4 text-sm leading-7 text-foreground/80">
-                {result.raw_text || "No scenario text available."}
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-emerald-300/80">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Synthesis and Verdict
-              </div>
-              
-              <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-headings:font-serif prose-headings:tracking-wide prose-headings:text-foreground prose-strong:text-emerald-300 prose-code:border prose-code:border-white/10 prose-code:bg-black/40 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px] prose-code:font-mono">
-                {cleanMarkdown.trim() ? (
-                  <ReactMarkdown>{cleanMarkdown}</ReactMarkdown>
-                ) : (
-                  <p className="text-sm text-foreground/45">
-                    No judgment returned.
-                  </p>
-                )}
-              </div>
-
-
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-primary/75">
-              <Gavel className="h-3.5 w-3.5" />
-              Referenced Authorities
-            </div>
-
-            <div className="space-y-3">
-              {Array.isArray(result.precedents) &&
-              result.precedents.length > 0 ? (
-                result.precedents.map((precedent, index) => {
-                  const meta = result.precedent_meta?.[index];
-                  // Clean newlines for precedents too
-                  const cleanPrecedent = (precedent || "").replace(/\\n/g, "\n");
-
-                  return (
-                    <div
-                      key={`${result._case_num}-${index}`}
-                      className="rounded-xl border border-white/5 bg-white/2.5 px-4 py-4 transition-colors hover:bg-white/4"
-                    >
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-white/5 pb-2">
-                        <span className="text-xs font-medium text-foreground/75">
-                          {meta?.source ?? `Authority ${index + 1}`}
-                        </span>
-                        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/55">
-                          Score {meta?.score ? meta.score.toFixed(3) : "N/A"}
-                        </span>
-                      </div>
-
-                      <div className="prose prose-sm prose-invert max-w-none prose-p:m-0 prose-p:leading-7 prose-headings:font-serif prose-strong:text-foreground">
-                        {cleanPrecedent.trim() ? (
-                          <ReactMarkdown>{cleanPrecedent}</ReactMarkdown>
-                        ) : (
-                          <p className="text-sm text-foreground/45">
-                            No precedent text available.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })
+            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/5 text-foreground/50 transition-colors group-hover:bg-white/10 group-hover:text-foreground">
+              {isCaseExpanded ? (
+                <ChevronUp className="h-3.5 w-3.5" />
               ) : (
-                <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/10 bg-white/2 px-4 py-4 text-sm text-foreground/45">
-                  <Search className="h-4 w-4 text-foreground/30" />
-                  No precedents were found for this scenario.
-                </div>
+                <ChevronDown className="h-3.5 w-3.5" />
               )}
             </div>
           </div>
-        </div>
+        </button>
+
+        {isCaseExpanded && (
+          <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+            <header className="mb-8 space-y-3 px-1">
+              <h3 className="text-2xl font-serif tracking-wide text-foreground sm:text-[1.75rem]">
+                {result.category} Judgment
+              </h3>
+              {keywords.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {keywords.map((keyword, index) => (
+                    <span
+                      key={`${keyword}-${index}`}
+                      className="rounded-full border border-white/10 bg-white/4 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-foreground/55"
+                    >
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </header>
+
+            <div className="grid gap-8 2xl:grid-cols-2">
+              <div className="space-y-8 2xl:border-r 2xl:border-white/5 2xl:pr-8">
+                <div className="rounded-xl border border-white/5 bg-white/2.5 px-4 py-4">
+                  <button
+                    onClick={() => setIsContextExpanded(!isContextExpanded)}
+                    className="group flex w-full items-center justify-between outline-none"
+                  >
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-foreground/40 transition-colors group-hover:text-foreground/70">
+                      <Scale className="h-3.5 w-3.5" />
+                      Scenario Context
+                    </div>
+                    <div className="text-foreground/40 transition-colors group-hover:text-foreground/70">
+                      {isContextExpanded ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      )}
+                    </div>
+                  </button>
+                  {isContextExpanded && (
+                    <div className="mt-4 animate-in fade-in slide-in-from-top-1 border-t border-white/5 pt-4 duration-200">
+                      <p className="border-l border-white/10 pl-4 text-sm leading-7 text-foreground/80">
+                        {result.raw_text || "No scenario text available."}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-emerald-300/80">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    Synthesis and Verdict
+                  </div>
+
+                  <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-headings:font-serif prose-headings:tracking-wide prose-headings:text-foreground prose-strong:text-emerald-300 prose-code:border prose-code:border-white/10 prose-code:bg-black/40 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px] prose-code:font-mono">
+                    {cleanMarkdown.trim() ? (
+                      <ReactMarkdown>{cleanMarkdown}</ReactMarkdown>
+                    ) : (
+                      <p className="text-sm text-foreground/45">
+                        No judgment returned.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.22em] text-primary/75">
+                  <Gavel className="h-3.5 w-3.5" />
+                  Referenced Authorities
+                </div>
+
+                <div className="space-y-3">
+                  {Array.isArray(result.precedents) && result.precedents.length > 0 ? (
+                    result.precedents.map((precedent, index) => (
+                      <PrecedentItem
+                        key={`${result._case_num}-${index}`}
+                        precedent={precedent}
+                        meta={result.precedent_meta?.[index]}
+                        index={index}
+                      />
+                    ))
+                  ) : (
+                    <div className="flex items-center gap-3 rounded-xl border border-dashed border-white/10 bg-white/2 px-4 py-4 text-sm text-foreground/45">
+                      <Search className="h-4 w-4 text-foreground/30" />
+                      No precedents were found for this scenario.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -423,9 +490,13 @@ export default function Home() {
             </div>
 
             {analysis?.status === "success" && analysis.data.length > 0 ? (
-              <div className="space-y-10">
-                {analysis.data.map((result) => (
-                  <ResultItem key={result._case_num} result={result} />
+              <div className="flex flex-col">
+                {analysis.data.map((result, index) => (
+                  <ResultItem
+                    key={result._case_num}
+                    result={result}
+                    isInitiallyExpanded={index === 0}
+                  />
                 ))}
               </div>
             ) : (
