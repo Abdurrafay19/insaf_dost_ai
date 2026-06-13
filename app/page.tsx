@@ -55,10 +55,12 @@ function keywordPills(keywords: string | undefined | null): string[] {
     return [];
   }
 
-  return keywords
+  const parsed = keywords
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+    
+  return Array.from(new Set(parsed));
 }
 
 function parseCases(input: string): string[] {
@@ -79,6 +81,9 @@ function parseCases(input: string): string[] {
 
 function ResultItem({ result }: { result: AnalysisCaseResult }) {
   const keywords = keywordPills(result.legal_keywords || "");
+
+  // GUARANTEE CLEAN MARKDOWN: Aggressively parse escaped JSON newlines
+  const cleanMarkdown = (result.final_answer || "").replace(/\\n/g, "\n");
 
   return (
     <section className="relative pl-8 pb-12 last:pb-0 last:before:hidden before:absolute before:left-2.25 before:top-0 before:bottom-0 before:w-px before:bg-white/10">
@@ -110,9 +115,9 @@ function ResultItem({ result }: { result: AnalysisCaseResult }) {
 
           {keywords.length > 0 ? (
             <div className="flex flex-wrap gap-2 pt-1">
-              {keywords.map((keyword) => (
+              {keywords.map((keyword, index) => (
                 <span
-                  key={keyword}
+                  key={`${keyword}-${index}`}
                   className="rounded-full border border-white/10 bg-white/4 px-2.5 py-1 text-[10px] font-mono uppercase tracking-[0.18em] text-foreground/55"
                 >
                   {keyword}
@@ -139,15 +144,18 @@ function ResultItem({ result }: { result: AnalysisCaseResult }) {
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Synthesis and Verdict
               </div>
+              
               <div className="prose prose-sm prose-invert max-w-none prose-p:my-2 prose-headings:font-serif prose-headings:tracking-wide prose-headings:text-foreground prose-strong:text-emerald-300 prose-code:border prose-code:border-white/10 prose-code:bg-black/40 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-[11px] prose-code:font-mono">
-                {result.final_answer && result.final_answer.trim() ? (
-                  <ReactMarkdown>{result.final_answer}</ReactMarkdown>
+                {cleanMarkdown.trim() ? (
+                  <ReactMarkdown>{cleanMarkdown}</ReactMarkdown>
                 ) : (
                   <p className="text-sm text-foreground/45">
                     No judgment returned.
                   </p>
                 )}
               </div>
+
+
             </div>
           </div>
 
@@ -162,6 +170,8 @@ function ResultItem({ result }: { result: AnalysisCaseResult }) {
               result.precedents.length > 0 ? (
                 result.precedents.map((precedent, index) => {
                   const meta = result.precedent_meta?.[index];
+                  // Clean newlines for precedents too
+                  const cleanPrecedent = (precedent || "").replace(/\\n/g, "\n");
 
                   return (
                     <div
@@ -178,8 +188,8 @@ function ResultItem({ result }: { result: AnalysisCaseResult }) {
                       </div>
 
                       <div className="prose prose-sm prose-invert max-w-none prose-p:m-0 prose-p:leading-7 prose-headings:font-serif prose-strong:text-foreground">
-                        {precedent && precedent.trim() ? (
-                          <ReactMarkdown>{precedent}</ReactMarkdown>
+                        {cleanPrecedent.trim() ? (
+                          <ReactMarkdown>{cleanPrecedent}</ReactMarkdown>
                         ) : (
                           <p className="text-sm text-foreground/45">
                             No precedent text available.
