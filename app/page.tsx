@@ -145,8 +145,8 @@ function ResultItem({
   const [isContextExpanded, setIsContextExpanded] = useState(false);
 
   return (
-    <section className="relative pl-8 pb-6 last:pb-0 last:before:hidden before:absolute before:left-[9px] before:top-4 before:bottom-0 before:w-px before:bg-white/10">
-      <div className="absolute left-0 top-[14px] flex h-5 w-5 items-center justify-center rounded-full border border-white/15 bg-[#0d0f12]">
+    <section className="relative pl-8 pb-6 last:pb-0 last:before:hidden before:absolute before:left-2.25 before:top-4 before:bottom-0 before:w-px before:bg-white/10">
+      <div className="absolute left-0 top-3.5 flex h-5 w-5 items-center justify-center rounded-full border border-white/15 bg-[#0d0f12]">
         <div className="h-1.5 w-1.5 rounded-full bg-primary shadow-[0_0_10px_rgba(203,168,106,0.55)]" />
       </div>
 
