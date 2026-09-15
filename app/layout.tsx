@@ -1,15 +1,23 @@
 ﻿import type { Metadata } from "next";
-import { Inter, Playfair_Display } from "next/font/google";
+import { Domine, Source_Serif_4, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-inter",
+const domine = Domine({
+  variable: "--font-domine",
   subsets: ["latin"],
+  weight: ["400", "600", "700"],
 });
 
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
+const sourceSerif = Source_Serif_4({
+  variable: "--font-source-serif",
   subsets: ["latin"],
+  weight: ["400", "600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -25,9 +33,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${playfair.variable} h-full antialiased dark`}
+      className={`${domine.variable} ${sourceSerif.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary">
+      <body className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-stone-200">
         {children}
       </body>
     </html>
