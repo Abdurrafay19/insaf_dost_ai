@@ -144,7 +144,7 @@ export default function Home() {
     try {
       await streamAnalysis(trimmedCases, handleEvent, controller.signal);
     } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) {
+      if (!(error instanceof Error && error.name === "AbortError")) {
         setErrorMessage(
           error instanceof Error ? error.message : "Analysis failed.",
         );
