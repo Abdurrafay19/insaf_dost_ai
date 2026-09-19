@@ -51,7 +51,7 @@ function parseEventChunk(chunk: string): StreamEvent | null {
         !line.startsWith("id:"),
     );
 
-  const payload = lines.join("");
+  const payload = lines.join("\n");
 
   if (!payload) {
     return null;
