@@ -51,7 +51,7 @@ function TextareaImpl(
       ref={textareaRef}
       rows={rows}
       className={cn(
-        "flex w-full resize-none overflow-hidden rounded-none border border-input bg-card px-3.5 py-3 font-serif text-sm leading-relaxed text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:cursor-not-allowed disabled:opacity-50",
+        "flex w-full resize-none overflow-hidden rounded-none border border-input bg-card px-3.5 py-3 font-serif text-sm leading-relaxed text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:cursor-not-allowed disabled:opacity-50",
         className,
       )}
       style={style}
