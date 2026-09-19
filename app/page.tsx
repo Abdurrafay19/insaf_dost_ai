@@ -7,8 +7,10 @@ import { Header } from "@/components/layout/Header";
 import { CaseInputWorkspace } from "@/components/case/CaseInputWorkspace";
 import { ExecutionTracker } from "@/components/case/ExecutionTracker";
 import { LitigationBrief } from "@/components/case/LitigationBrief";
+import { ResultsNav } from "@/components/case/ResultsNav";
 import { Button } from "@/components/ui/button";
 import { streamAnalysis } from "@/lib/insafdost-api";
+import { useLocalStorageState } from "@/lib/use-local-storage";
 import type {
   CaseProgress,
   CaseResponseItem,
@@ -16,6 +18,8 @@ import type {
   PipelineNode,
   StreamEvent,
 } from "@/types/insafdost";
+
+const DRAFT_STORAGE_KEY = "insafdost:draft-cases";
 
 const EMPTY_NODES: Record<PipelineNode, NodeStatus> = {
   guardrail: "pending",
@@ -35,7 +39,9 @@ function createProgress(caseNum: number, totalCases: number): CaseProgress {
 }
 
 export default function Home() {
-  const [cases, setCases] = useState<string[]>([""]);
+  const [cases, setCases] = useLocalStorageState<string[]>(DRAFT_STORAGE_KEY, [
+    "",
+  ]);
   const [progress, setProgress] = useState<CaseProgress[]>([]);
   const [results, setResults] = useState<CaseResponseItem[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -221,6 +227,8 @@ export default function Home() {
               </span>
             ) : null}
           </div>
+
+          <ResultsNav results={results} />
 
           {results.length > 0 ? (
             <div className="flex flex-col gap-6">
