@@ -63,7 +63,7 @@ export function CaseInputWorkspace({
                 onClick={() => removeCase(index)}
                 disabled={disabled || cases.length <= 1}
                 aria-label={`Remove matter ${index + 1}`}
-                className="inline-flex h-9 w-9 items-center justify-center border border-border text-muted-foreground transition-colors duration-150 hover:border-border-strong hover:text-foreground disabled:pointer-events-none disabled:opacity-40 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-stone-900"
+                className="inline-flex h-9 w-9 items-center justify-center border border-border text-muted-foreground transition-colors duration-150 hover:border-border-strong hover:text-foreground disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
