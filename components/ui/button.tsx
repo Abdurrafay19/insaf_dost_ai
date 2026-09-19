@@ -15,10 +15,13 @@ export function Button({
   ...props
 }: ButtonProps) {
   const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
-    default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90",
-    secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-    outline: "border border-border bg-transparent hover:bg-white/80",
-    ghost: "bg-transparent hover:bg-slate-100",
+    default:
+      "bg-primary text-primary-foreground border-primary hover:bg-stone-800",
+    secondary:
+      "bg-secondary text-secondary-foreground border-border hover:bg-muted",
+    outline: "bg-card text-foreground border-border hover:border-border-strong",
+    ghost:
+      "bg-transparent border-transparent text-foreground hover:bg-secondary",
   };
 
   const sizes: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -31,7 +34,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-none border font-mono text-xs font-semibold uppercase tracking-wider transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:pointer-events-none disabled:opacity-50",
         variants[variant],
         sizes[size],
         className,

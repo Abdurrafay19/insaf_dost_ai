@@ -1,8 +1,7 @@
 import type {
-  AnalysisCaseRequest,
-  AnalysisResponse,
-  BackendHealthResponse,
-  BackendHealthState,
+  AnalyzeStreamRequest,
+  BackendStatusState,
+  StreamEvent,
 } from "@/types/insafdost";
 
 const API_BASE_URL =
@@ -12,78 +11,124 @@ function buildApiUrl(path: string): string {
   return `${API_BASE_URL.replace(/\/$/, "")}${path}`;
 }
 
-async function readErrorMessage(response: Response): Promise<string> {
-  const contentType = response.headers.get("content-type") ?? "";
-
-  if (contentType.includes("application/json")) {
-    try {
-      const payload: unknown = await response.json();
-
-      if (
-        payload &&
-        typeof payload === "object" &&
-        "detail" in payload &&
-        typeof (payload as { detail?: unknown }).detail === "string"
-      ) {
-        return (payload as { detail: string }).detail;
-      }
-
-      return JSON.stringify(payload);
-    } catch {
-      return `Request failed with status ${response.status}`;
-    }
-  }
-
-  const text = await response.text();
-  return text || `Request failed with status ${response.status}`;
-}
-
-export async function checkBackendHealth(
+export async function checkReady(
   signal?: AbortSignal,
-): Promise<BackendHealthState> {
+): Promise<BackendStatusState> {
   try {
-    const response = await fetch(buildApiUrl("/health"), {
+    const response = await fetch(buildApiUrl("/ready"), {
       method: "GET",
       cache: "no-store",
       signal,
     });
 
-    if (!response.ok) {
-      return {
-        connected: false,
-        message: await readErrorMessage(response),
-      };
+    if (response.status === 200) {
+      return { ready: true, message: "Operational" };
     }
 
-    const payload = (await response.json()) as BackendHealthResponse;
+    if (response.status === 503) {
+      return { ready: false, message: "Engine Initializing (Loading Weights)" };
+    }
 
     return {
-      connected: true,
-      message: payload.message || "Backend ready",
+      ready: false,
+      message: `Service unavailable (status ${response.status})`,
     };
   } catch {
-    return {
-      connected: false,
-      message: "Backend unavailable",
-    };
+    return { ready: false, message: "Unable to reach the analysis service" };
   }
 }
 
-export async function analyzeCases(cases: string[]): Promise<AnalysisResponse> {
-  const requestBody: AnalysisCaseRequest = { cases };
+function parseEventChunk(chunk: string): StreamEvent | null {
+  const lines = chunk
+    .split("\n")
+    .map((line) =>
+      line.startsWith("data:") ? line.slice(5).trim() : line.trim(),
+    )
+    .filter(
+      (line) =>
+        line.length > 0 &&
+        !line.startsWith("event:") &&
+        !line.startsWith("id:"),
+    );
 
-  const response = await fetch(buildApiUrl("/analyze"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(requestBody),
-    cache: "no-store",
-  });
+  const payload = lines.join("\n");
 
-  if (!response.ok) {
-    throw new Error(await readErrorMessage(response));
+  if (!payload) {
+    return null;
   }
 
-  return (await response.json()) as AnalysisResponse;
+  try {
+    return JSON.parse(payload) as StreamEvent;
+  } catch {
+    return null;
+  }
+}
+
+export async function streamAnalysis(
+  cases: string[],
+  onEvent: (event: StreamEvent) => void,
+  signal: AbortSignal,
+): Promise<void> {
+  const requestBody: AnalyzeStreamRequest = { cases };
+
+  const response = await fetch(buildApiUrl("/analyze/stream"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(requestBody),
+    signal,
+  });
+
+  if (!response.ok || !response.body) {
+    let detail = `Request failed with status ${response.status}`;
+
+    try {
+      const errorPayload: unknown = await response.json();
+
+      if (
+        errorPayload &&
+        typeof errorPayload === "object" &&
+        "detail" in errorPayload &&
+        typeof (errorPayload as { detail?: unknown }).detail === "string"
+      ) {
+        detail = (errorPayload as { detail: string }).detail;
+      }
+    } catch {
+      // Non-JSON error body; fall back to the default message.
+    }
+
+    throw new Error(detail);
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      break;
+    }
+
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary = buffer.indexOf("\n\n");
+
+    while (boundary !== -1) {
+      const rawChunk = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+
+      const event = parseEventChunk(rawChunk);
+      if (event) {
+        onEvent(event);
+      }
+
+      boundary = buffer.indexOf("\n\n");
+    }
+  }
+
+  const finalEvent = parseEventChunk(buffer);
+  if (finalEvent) {
+    onEvent(finalEvent);
+  }
 }
