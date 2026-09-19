@@ -1,5 +1,6 @@
 ﻿import type { Metadata } from "next";
 import { Domine, Source_Serif_4, JetBrains_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const domine = Domine({
@@ -37,6 +38,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans selection:bg-stone-200">
         {children}
+        <Analytics />
       </body>
     </html>
   );
