@@ -1,6 +1,3 @@
-import { jsPDF } from "jspdf";
-import { Document, HeadingLevel, Packer, Paragraph, TextRun } from "docx";
-
 import { parseMarkdownLite } from "@/lib/markdown-lite";
 import type { CaseResponseItem } from "@/types/insafdost";
 
@@ -8,10 +5,13 @@ const PAGE_MARGIN = 15;
 const LINE_HEIGHT = 6;
 
 function sanitizeFilename(input: string): string {
-  return input
-    .replace(/[^a-z0-9-_]+/gi, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 60);
+  return (
+    input
+      .replace(/[^a-z0-9-_]+/gi, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 60)
+      .replace(/^-|-$/g, "") || "analysis"
+  );
 }
 
 function downloadBlob(blob: Blob, filename: string): void {
@@ -22,7 +22,7 @@ function downloadBlob(blob: Blob, filename: string): void {
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function copyFindingsToClipboard(
@@ -46,19 +46,17 @@ export function copyCitationToClipboard(source: string): Promise<void> {
   return navigator.clipboard.writeText(source);
 }
 
-export function exportCaseAsPdf(result: CaseResponseItem): void {
+export async function exportCaseAsPdf(
+  result: CaseResponseItem,
+): Promise<void> {
+  // Lazy-load jsPDF to reduce initial bundle size by ~350KB.
+  const { jsPDF } = await import("jspdf");
+
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - PAGE_MARGIN * 2;
   let y = PAGE_MARGIN;
-
-  function ensureSpace(lines: number) {
-    if (y + lines * LINE_HEIGHT > pageHeight - PAGE_MARGIN) {
-      doc.addPage();
-      y = PAGE_MARGIN;
-    }
-  }
 
   function writeBlock(
     text: string,
@@ -67,9 +65,16 @@ export function exportCaseAsPdf(result: CaseResponseItem): void {
     doc.setFontSize(options.size);
     doc.setFont("helvetica", options.bold ? "bold" : "normal");
     const wrapped = doc.splitTextToSize(text, contentWidth) as string[];
-    ensureSpace(wrapped.length);
-    doc.text(wrapped, PAGE_MARGIN, y);
-    y += wrapped.length * LINE_HEIGHT + options.spacingAfter;
+
+    for (const line of wrapped) {
+      if (y + LINE_HEIGHT > pageHeight - PAGE_MARGIN) {
+        doc.addPage();
+        y = PAGE_MARGIN;
+      }
+      doc.text(line, PAGE_MARGIN, y);
+      y += LINE_HEIGHT;
+    }
+    y += options.spacingAfter;
   }
 
   doc.setFontSize(16);
@@ -90,7 +95,11 @@ export function exportCaseAsPdf(result: CaseResponseItem): void {
   });
 
   writeBlock("Findings", { size: 12, bold: true, spacingAfter: 2 });
-  for (const block of parseMarkdownLite(result.final_answer)) {
+  const cleanAnswer = (result.final_answer || "")
+    .replace(/\\n/g, "\n")
+    .trim();
+
+  for (const block of parseMarkdownLite(cleanAnswer)) {
     const text = block.runs.map((run) => run.text).join("");
     const prefix = block.type === "listitem" ? "•  " : "";
     writeBlock(prefix + text, {
@@ -128,7 +137,16 @@ export function exportCaseAsPdf(result: CaseResponseItem): void {
 export async function exportCaseAsDocx(
   result: CaseResponseItem,
 ): Promise<void> {
-  const findingParagraphs = parseMarkdownLite(result.final_answer).map(
+  // Lazy-load docx to reduce initial bundle size by ~450KB.
+  const { Document, HeadingLevel, Packer, Paragraph, TextRun } = await import(
+    "docx"
+  );
+
+  const cleanAnswer = (result.final_answer || "")
+    .replace(/\\n/g, "\n")
+    .trim();
+
+  const findingParagraphs = parseMarkdownLite(cleanAnswer).map(
     (block) => {
       const runs = block.runs.map(
         (run) =>
