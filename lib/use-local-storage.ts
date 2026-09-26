@@ -1,31 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useSyncExternalStore } from "react";
+
+function subscribe(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
 
 export function useLocalStorageState<T>(
   key: string,
   initialValue: T,
-): [T, (value: T) => void] {
-  const [state, setState] = useState<T>(() => {
-    if (typeof window === "undefined") {
-      return initialValue;
-    }
-
+): [T, (value: T | ((prev: T) => T)) => void] {
+  const getSnapshot = useCallback((): string | null => {
     try {
-      const stored = window.localStorage.getItem(key);
-      return stored ? (JSON.parse(stored) as T) : initialValue;
+      return window.localStorage.getItem(key);
     } catch {
-      return initialValue;
+      return null;
     }
-  });
+  }, [key]);
 
-  useEffect(() => {
+  const getServerSnapshot = useCallback((): string | null => {
+    return null;
+  }, []);
+
+  const raw = useSyncExternalStore(
+    subscribe,
+    getSnapshot,
+    getServerSnapshot,
+  );
+
+  let state: T = initialValue;
+  if (raw !== null) {
     try {
-      window.localStorage.setItem(key, JSON.stringify(state));
+      state = JSON.parse(raw) as T;
     } catch {
-      // Storage unavailable (private browsing, quota exceeded); fail silently.
+      state = initialValue;
     }
-  }, [key, state]);
+  }
+
+  const setState = useCallback(
+    (value: T | ((prev: T) => T)) => {
+      try {
+        const nextValue =
+          typeof value === "function"
+            ? (value as (prev: T) => T)(state)
+            : value;
+        window.localStorage.setItem(key, JSON.stringify(nextValue));
+        window.dispatchEvent(new Event("storage"));
+      } catch {
+        // Storage unavailable (quota exceeded or private browsing); fail silently.
+      }
+    },
+    [key, state],
+  );
 
   return [state, setState];
 }
+
