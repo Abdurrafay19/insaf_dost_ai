@@ -1,11 +1,13 @@
 "use client";
 
+import React from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 const MAX_CASES = 5;
+export const MAX_CHARS_PER_CASE = 15000;
 
 interface CaseInputWorkspaceProps {
   cases: string[];
@@ -13,14 +15,14 @@ interface CaseInputWorkspaceProps {
   disabled?: boolean;
 }
 
-export function CaseInputWorkspace({
+export const CaseInputWorkspace = React.memo(function CaseInputWorkspace({
   cases,
   onChange,
   disabled = false,
 }: CaseInputWorkspaceProps) {
   function updateCase(index: number, value: string) {
     const next = [...cases];
-    next[index] = value;
+    next[index] = value.slice(0, MAX_CHARS_PER_CASE);
     onChange(next);
   }
 
@@ -74,6 +76,7 @@ export function CaseInputWorkspace({
               onChange={(event) => updateCase(index, event.target.value)}
               disabled={disabled}
               rows={6}
+              maxLength={MAX_CHARS_PER_CASE}
               placeholder="Describe the incident, evidence, and legal question for this matter."
               className="border-0 bg-transparent"
             />
@@ -112,4 +115,4 @@ export function CaseInputWorkspace({
       </div>
     </div>
   );
-}
+});

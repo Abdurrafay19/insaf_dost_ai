@@ -24,25 +24,20 @@ function TextareaImpl(
     [],
   );
 
-  React.useLayoutEffect(() => {
+  const adjustHeight = React.useCallback(() => {
     const element = textareaRef.current;
-
     if (!element) {
       return;
     }
-
     element.style.height = "auto";
     element.style.height = `${element.scrollHeight}px`;
-  }, [value, defaultValue]);
+  }, []);
+
+  React.useEffect(() => {
+    adjustHeight();
+  }, [value, defaultValue, adjustHeight]);
 
   function handleChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
-    const element = textareaRef.current;
-
-    if (element) {
-      element.style.height = "auto";
-      element.style.height = `${element.scrollHeight}px`;
-    }
-
     onChange?.(event);
   }
 
