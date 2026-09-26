@@ -40,16 +40,16 @@ export async function checkReady(
 
 function parseEventChunk(chunk: string): StreamEvent | null {
   const lines = chunk
-    .split("\n")
-    .map((line) =>
-      line.startsWith("data:") ? line.slice(5).trim() : line.trim(),
-    )
+    .split(/\r?\n/)
+    .map((line) => line.trim())
     .filter(
       (line) =>
         line.length > 0 &&
+        !line.startsWith(":") &&
         !line.startsWith("event:") &&
         !line.startsWith("id:"),
-    );
+    )
+    .map((line) => (line.startsWith("data:") ? line.slice(5).trim() : line));
 
   const payload = lines.join("\n");
 
@@ -111,6 +111,7 @@ export async function streamAnalysis(
     }
 
     buffer += decoder.decode(value, { stream: true });
+    buffer = buffer.replace(/\r\n/g, "\n");
 
     let boundary = buffer.indexOf("\n\n");
 
