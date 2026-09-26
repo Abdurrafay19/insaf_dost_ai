@@ -1,7 +1,7 @@
-﻿import type { Metadata } from "next";
+import type { Metadata } from "next";
 import { Domine, Source_Serif_4, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const domine = Domine({
@@ -23,8 +23,18 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "InsafDost AI",
-  description: "Legal scenario analysis for Pakistani law.",
+  title: "InsafDost AI — Pakistani Legal Analysis & Reasoning",
+  description:
+    "Enterprise-grade scenario analysis, statutory reasoning, and judicial precedent synthesis for Pakistani law.",
+  keywords: [
+    "Pakistan law",
+    "Pakistani case law",
+    "legal analysis",
+    "statutory reasoning",
+    "litigation strategy",
+    "InsafDost",
+  ],
+  authors: [{ name: "InsafDost AI" }],
 };
 
 export default function RootLayout({

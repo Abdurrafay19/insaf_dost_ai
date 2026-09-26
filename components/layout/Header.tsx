@@ -8,7 +8,7 @@ export function Header() {
           <div className="flex items-center gap-2">
             <Image
               src="/icon.png"
-              alt="InsafDost AI"
+              alt=""
               width={28}
               height={28}
               priority

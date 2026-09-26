@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Check,
   ChevronDown,
@@ -30,7 +30,9 @@ interface LitigationBriefProps {
   result: CaseResponseItem;
 }
 
-export function LitigationBrief({ result }: LitigationBriefProps) {
+export const LitigationBrief = React.memo(function LitigationBrief({
+  result,
+}: LitigationBriefProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [copied, setCopied] = useState(false);
 
@@ -45,13 +47,6 @@ export function LitigationBrief({ result }: LitigationBriefProps) {
     setIsOpen((prev) => !prev);
   }
 
-  function handleHeaderKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      toggleOpen();
-    }
-  }
-
   async function handleCopy(event: React.MouseEvent) {
     event.stopPropagation();
     try {
@@ -63,9 +58,9 @@ export function LitigationBrief({ result }: LitigationBriefProps) {
     }
   }
 
-  function handleExportPdf(event: React.MouseEvent) {
+  async function handleExportPdf(event: React.MouseEvent) {
     event.stopPropagation();
-    exportCaseAsPdf(result);
+    await exportCaseAsPdf(result);
   }
 
   async function handleExportDocx(event: React.MouseEvent) {
@@ -78,13 +73,11 @@ export function LitigationBrief({ result }: LitigationBriefProps) {
       id={`case-${result._case_num}`}
       className="scroll-mt-20 border border-border bg-card"
     >
-      <div
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-expanded={isOpen}
         onClick={toggleOpen}
-        onKeyDown={handleHeaderKeyDown}
-        className="flex w-full cursor-pointer flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4 transition-colors duration-150 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900"
+        className="flex w-full cursor-pointer flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4 text-left transition-colors duration-150 hover:bg-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900"
       >
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -109,7 +102,7 @@ export function LitigationBrief({ result }: LitigationBriefProps) {
             )}
           </span>
         </div>
-      </div>
+      </button>
 
       {isOpen ? (
         <>
@@ -128,7 +121,7 @@ export function LitigationBrief({ result }: LitigationBriefProps) {
             </button>
             <button
               type="button"
-              onClick={handleExportPdf}
+              onClick={(event) => void handleExportPdf(event)}
               className="inline-flex items-center gap-1.5 border border-border px-2.5 py-1.5 font-mono text-[11px] uppercase tracking-wider text-muted-foreground transition-colors duration-150 hover:border-border-strong hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900"
             >
               <FileDown className="h-3.5 w-3.5" />
@@ -179,7 +172,33 @@ export function LitigationBrief({ result }: LitigationBriefProps) {
                 </span>
                 <div className="prose prose-sm prose-stone max-w-none prose-headings:font-heading prose-p:leading-relaxed">
                   {cleanAnswer ? (
-                    <ReactMarkdown>{cleanAnswer}</ReactMarkdown>
+                    <ReactMarkdown
+                      components={{
+                        a: ({ href, children }) => {
+                          const isSafe =
+                            href &&
+                            (href.startsWith("http://") ||
+                              href.startsWith("https://") ||
+                              href.startsWith("#"));
+                          if (!isSafe) {
+                            return <span>{children}</span>;
+                          }
+                          return (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline underline-offset-2 hover:text-foreground"
+                            >
+                              {children}
+                            </a>
+                          );
+                        },
+                        img: () => null,
+                      }}
+                    >
+                      {cleanAnswer}
+                    </ReactMarkdown>
                   ) : (
                     <p className="text-sm text-muted-foreground">
                       No findings returned.
@@ -203,4 +222,4 @@ export function LitigationBrief({ result }: LitigationBriefProps) {
       ) : null}
     </article>
   );
-}
+});
