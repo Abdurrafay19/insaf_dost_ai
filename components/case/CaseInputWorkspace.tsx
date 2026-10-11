@@ -5,9 +5,13 @@ import { Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
-const MAX_CASES = 5;
+export const MAX_CASES = 5;
 export const MAX_CHARS_PER_CASE = 15000;
+
+const COUNTER_THRESHOLD = Math.floor(MAX_CHARS_PER_CASE * 0.8);
+const numberFormat = new Intl.NumberFormat("en-US");
 
 interface CaseInputWorkspaceProps {
   cases: string[];
@@ -49,67 +53,87 @@ export const CaseInputWorkspace = React.memo(function CaseInputWorkspace({
   const atMaxCases = cases.length >= MAX_CASES;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-5">
-      <div className="flex flex-col gap-4">
-        {cases.map((caseText, index) => (
-          <div key={index} className="border border-border bg-card">
-            <div className="flex items-center justify-between border-b border-border px-3.5 py-2">
-              <label
-                htmlFor={`case-input-${index}`}
-                className="font-mono text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
-              >
-                Matter {String(index + 1).padStart(2, "0")}
-              </label>
-              <button
-                type="button"
-                onClick={() => removeCase(index)}
-                disabled={disabled || cases.length <= 1}
-                aria-label={`Remove matter ${index + 1}`}
-                className="inline-flex h-9 w-9 items-center justify-center border border-border text-muted-foreground transition-colors duration-150 hover:border-border-strong hover:text-foreground disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-5">
+        {cases.map((caseText, index) => {
+          const counterId = `case-count-${index}`;
+          const showCounter = caseText.length >= COUNTER_THRESHOLD;
+          const atLimit = caseText.length >= MAX_CHARS_PER_CASE;
+
+          return (
+            <div key={index} className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-3">
+                <label
+                  htmlFor={`case-input-${index}`}
+                  className="text-sm font-semibold text-foreground"
+                >
+                  Matter {index + 1}
+                </label>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeCase(index)}
+                  disabled={disabled || cases.length <= 1}
+                  aria-label={`Remove matter ${index + 1}`}
+                >
+                  <Trash2 aria-hidden="true" className="h-4 w-4" />
+                </Button>
+              </div>
+              <Textarea
+                id={`case-input-${index}`}
+                dir="auto"
+                value={caseText}
+                onChange={(event) => updateCase(index, event.target.value)}
+                disabled={disabled}
+                rows={6}
+                maxLength={MAX_CHARS_PER_CASE}
+                aria-describedby={showCounter ? counterId : undefined}
+                placeholder="Describe the incident, the evidence, and the legal question for this matter."
+              />
+              {showCounter ? (
+                <p
+                  id={counterId}
+                  aria-live={atLimit ? "polite" : undefined}
+                  className={cn(
+                    "text-xs",
+                    atLimit
+                      ? "font-medium text-destructive"
+                      : "text-muted-foreground",
+                  )}
+                >
+                  {numberFormat.format(caseText.length)} of{" "}
+                  {numberFormat.format(MAX_CHARS_PER_CASE)} characters.
+                  {atLimit ? " Limit reached. Extra text is not added." : ""}
+                </p>
+              ) : null}
             </div>
-            <Textarea
-              id={`case-input-${index}`}
-              value={caseText}
-              onChange={(event) => updateCase(index, event.target.value)}
-              disabled={disabled}
-              rows={6}
-              maxLength={MAX_CHARS_PER_CASE}
-              placeholder="Describe the incident, evidence, and legal question for this matter."
-              className="border-0 bg-transparent"
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-border pt-4">
+      <div className="flex flex-col gap-2">
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button
-            type="button"
             variant="outline"
             size="sm"
             onClick={addCase}
             disabled={disabled || atMaxCases}
-            className="flex-1"
           >
-            <Plus className="h-3.5 w-3.5" />
-            Add Another Matter
+            <Plus aria-hidden="true" className="h-4 w-4" />
+            Add another matter
           </Button>
           <Button
-            type="button"
             variant="ghost"
             size="sm"
             onClick={clearAll}
             disabled={disabled}
           >
-            Clear All
+            Clear all
           </Button>
         </div>
         {atMaxCases ? (
-          <p className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-            Batch limit reached — up to {MAX_CASES} matters per submission.
+          <p className="text-xs text-muted-foreground">
+            You can add up to {MAX_CASES} matters per submission.
           </p>
         ) : null}
       </div>
