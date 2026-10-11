@@ -45,6 +45,8 @@ function TextareaImpl(
     <textarea
       ref={textareaRef}
       rows={rows}
+      value={value}
+      defaultValue={value === undefined ? defaultValue : undefined}
       className={cn(
         "flex max-h-[60vh] w-full resize-none overflow-y-auto rounded-control border border-input bg-card px-3.5 py-3 font-sans text-base leading-relaxed text-foreground shadow-none transition-colors placeholder:text-muted-foreground focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50",
         className,

@@ -181,10 +181,17 @@ export default function Home() {
     setIsAnalyzing(false);
   }
 
+  const handleClearAll = useCallback(() => {
+    setCases(INITIAL_CASES);
+    setProgress([]);
+    setResults([]);
+    setErrorMessage(null);
+  }, [setCases]);
+
   return (
     <main
       id="main"
-      className="mx-auto flex w-full max-w-380 flex-1 flex-col gap-10 px-4 py-8 sm:px-8 sm:py-10"
+      className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-8 sm:px-8 sm:py-10"
     >
       <div className="flex flex-col gap-3">
         <h1 className="text-3xl font-semibold leading-tight text-foreground sm:text-4xl">
@@ -205,6 +212,7 @@ export default function Home() {
         <CaseInputWorkspace
           cases={cases}
           onChange={setCases}
+          onClear={handleClearAll}
           disabled={isAnalyzing}
         />
 
@@ -288,11 +296,11 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="rounded-card bg-secondary px-8 py-14 text-center">
-            <p className="text-base font-medium text-foreground">
+          <div className="rounded-md border border-dashed border-border bg-card px-8 py-12 text-center">
+            <p className="text-sm font-medium text-foreground">
               No results yet
             </p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+            <p className="mx-auto mt-1 max-w-md text-xs text-muted-foreground">
               Results appear here after you submit one or more matters.
             </p>
           </div>

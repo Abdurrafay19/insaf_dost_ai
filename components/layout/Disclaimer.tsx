@@ -12,7 +12,7 @@ export function Disclaimer({ className }: DisclaimerProps) {
       role="note"
       aria-label="Disclaimer"
       className={cn(
-        "flex gap-3 rounded-control bg-warning-tint p-4 text-sm text-foreground",
+        "flex gap-3 rounded-md border border-warning/30 bg-warning-tint/40 p-3.5 text-xs text-foreground",
         className,
       )}
     >
@@ -20,11 +20,11 @@ export function Disclaimer({ className }: DisclaimerProps) {
         aria-hidden="true"
         className="mt-0.5 h-4 w-4 shrink-0 text-warning"
       />
-      <p>
+      <p className="leading-relaxed">
         <strong className="font-semibold">Not legal advice.</strong> InsafDost
         AI is an experimental research aid. It can be wrong or incomplete.
-        Check every cited authority against the official source, and ask a
-        licensed advocate before you act.
+        Check every cited authority against the official source, and consult a
+        licensed advocate before taking action.
       </p>
     </aside>
   );

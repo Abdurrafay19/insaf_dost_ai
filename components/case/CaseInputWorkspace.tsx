@@ -16,12 +16,14 @@ const numberFormat = new Intl.NumberFormat("en-US");
 interface CaseInputWorkspaceProps {
   cases: string[];
   onChange: (cases: string[]) => void;
+  onClear?: () => void;
   disabled?: boolean;
 }
 
 export const CaseInputWorkspace = React.memo(function CaseInputWorkspace({
   cases,
   onChange,
+  onClear,
   disabled = false,
 }: CaseInputWorkspaceProps) {
   function updateCase(index: number, value: string) {
@@ -32,6 +34,7 @@ export const CaseInputWorkspace = React.memo(function CaseInputWorkspace({
 
   function removeCase(index: number) {
     if (cases.length <= 1) {
+      onChange([""]);
       return;
     }
 
@@ -48,6 +51,7 @@ export const CaseInputWorkspace = React.memo(function CaseInputWorkspace({
 
   function clearAll() {
     onChange([""]);
+    onClear?.();
   }
 
   const atMaxCases = cases.length >= MAX_CASES;
@@ -73,7 +77,7 @@ export const CaseInputWorkspace = React.memo(function CaseInputWorkspace({
                   variant="ghost"
                   size="icon"
                   onClick={() => removeCase(index)}
-                  disabled={disabled || cases.length <= 1}
+                  disabled={disabled || (cases.length <= 1 && caseText === "")}
                   aria-label={`Remove matter ${index + 1}`}
                 >
                   <Trash2 aria-hidden="true" className="h-4 w-4" />

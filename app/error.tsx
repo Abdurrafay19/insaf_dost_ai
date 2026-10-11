@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { ArrowLeft, RotateCcw } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 
 export default function GlobalError({
@@ -17,10 +20,22 @@ export default function GlobalError({
         Something went wrong
       </h1>
       <p className="max-w-[60ch] text-base text-muted-foreground">
-        The page failed to load. Your draft is still saved in this tab. Try
-        again.
+        The page encountered an error. Your draft is still saved in this tab. Try
+        again or return to the home page.
       </p>
-      <Button onClick={reset}>Try again</Button>
+      <div className="flex flex-wrap items-center gap-3 pt-2">
+        <Button onClick={reset}>
+          <RotateCcw className="h-4 w-4" aria-hidden="true" />
+          Try again
+        </Button>
+        <Link
+          href="/"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-control border border-border-strong bg-card px-5 text-sm font-semibold text-foreground transition-[background-color,transform] hover:bg-secondary active:scale-[0.98]"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to InsafDost AI
+        </Link>
+      </div>
     </main>
   );
 }

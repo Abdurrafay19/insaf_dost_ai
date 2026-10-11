@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 import { REPO_URL } from "@/lib/site";
 
@@ -15,6 +17,16 @@ export default function TermsPage() {
       id="main"
       className="mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:px-8"
     >
+      <div className="mb-6">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Back to InsafDost AI
+        </Link>
+      </div>
+
       <article className="prose">
         <h1>Terms of use</h1>
         <p>Last updated: October 11, 2026</p>
@@ -70,6 +82,16 @@ export default function TermsPage() {
 
         <h2>No warranty</h2>
         <p>The service is provided as is, without warranty of any kind.</p>
+
+        <div className="not-prose mt-12 border-t border-border pt-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Back to InsafDost AI
+          </Link>
+        </div>
       </article>
     </main>
   );

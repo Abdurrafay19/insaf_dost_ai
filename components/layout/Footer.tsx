@@ -8,7 +8,7 @@ const linkClass =
 export function Footer() {
   return (
     <footer className="mt-auto border-t border-border">
-      <div className="mx-auto flex max-w-380 flex-col gap-2 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-8">
         <p className="max-w-[60ch]">
           InsafDost AI is an experimental research aid. It is not legal advice
           and it can be wrong.

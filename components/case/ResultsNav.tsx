@@ -25,15 +25,17 @@ export function ResultsNav({ results }: ResultsNavProps) {
   return (
     <nav
       aria-label="Jump to matter"
-      className="glass sticky top-(--header-h) z-40 -mx-4 flex flex-wrap items-center gap-2 px-4 py-2.5 sm:-mx-8 sm:px-8"
+      className="sticky top-(--header-h) z-40 -mx-4 flex flex-wrap items-center gap-2 border-b border-border bg-background px-4 py-2.5 sm:-mx-8 sm:px-8"
     >
-      <span className="text-sm text-muted-foreground">Jump to</span>
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Jump to:
+      </span>
       {results.map((result) => (
         <button
           key={result._case_num}
           type="button"
           onClick={() => scrollToCase(result._case_num)}
-          className="h-10 rounded-full bg-card px-4 text-sm font-medium text-foreground shadow-sm ring-1 ring-border transition-[background-color,transform] duration-100 hover:bg-secondary active:scale-[0.98] motion-reduce:active:scale-100"
+          className="inline-flex h-8 items-center rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground transition-colors hover:bg-secondary active:scale-[0.98] motion-reduce:active:scale-100"
         >
           Matter {result._case_num}
         </button>

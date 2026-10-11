@@ -16,11 +16,9 @@ import {
 import { cn } from "@/lib/utils";
 import type { CaseResponseItem } from "@/types/insafdost";
 
-// Model output uses "#" and "##" headings. Render every one as an h5 so the
-// page outline stays valid (the section labels above them are h4).
 function MarkdownHeading({ children }: { children?: React.ReactNode }) {
   return (
-    <h5 className="mb-2 mt-6 font-sans text-base font-semibold text-foreground">
+    <h5 className="mb-2 mt-5 text-base font-semibold text-foreground">
       {children}
     </h5>
   );
@@ -47,7 +45,7 @@ const markdownComponents: Components = {
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="font-medium underline underline-offset-2"
+        className="font-medium underline underline-offset-2 hover:text-foreground"
       >
         {children}
       </a>
@@ -62,7 +60,7 @@ function groundingVariant(score: number): "success" | "warning" | "alert" {
   return "alert";
 }
 
-function excerpt(text: string, max = 110): string {
+function excerpt(text: string, max = 120): string {
   const single = text.replace(/\s+/g, " ").trim();
   return single.length > max
     ? `${single.slice(0, max).trimEnd()}...`
@@ -121,25 +119,26 @@ export const LitigationBrief = React.memo(function LitigationBrief({
 
   return (
     <article id={`case-${result._case_num}`} className="scroll-mt-14">
-      <Card>
-        <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between">
+      <Card className="overflow-hidden border border-border bg-card">
+        {/* Header Bar */}
+        <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between border-b border-border/60">
           <h3 className="min-w-0 flex-1 text-lg font-semibold leading-snug text-foreground">
             <button
               type="button"
               aria-expanded={isOpen}
               aria-controls={bodyId}
               onClick={toggleOpen}
-              className="flex w-full items-start gap-3 rounded-control text-left"
+              className="flex w-full items-start gap-3 text-left transition-colors hover:text-foreground/80"
             >
               <ChevronDown
                 aria-hidden="true"
                 className={cn(
-                  "mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-300",
+                  "mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
                   isOpen && "rotate-180",
                 )}
               />
               <span className="min-w-0">
-                <span className="block">Matter {result._case_num}</span>
+                <span className="block font-semibold">Matter {result._case_num}</span>
                 <span className="mt-1 block text-sm font-normal text-muted-foreground">
                   {excerpt(result.raw_text)}
                 </span>
@@ -158,16 +157,18 @@ export const LitigationBrief = React.memo(function LitigationBrief({
           </div>
         </div>
 
+        {/* Collapsible Body */}
         <div
           id={bodyId}
           inert={!isOpen}
           className={cn(
-            "grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
-            isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            "transition-[grid-template-rows] duration-200 ease-out",
+            isOpen ? "grid grid-rows-[1fr]" : "grid grid-rows-[0fr]",
           )}
         >
           <div className="overflow-hidden">
-            <div className="flex flex-col gap-6 px-5 pb-5">
+            <div className="flex flex-col gap-8 p-5 sm:p-6">
+              {/* Action Toolbar */}
               {isRejected ? null : (
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
@@ -176,9 +177,9 @@ export const LitigationBrief = React.memo(function LitigationBrief({
                     onClick={() => void handleCopy()}
                   >
                     {copied ? (
-                      <Check aria-hidden="true" className="h-4 w-4" />
+                      <Check aria-hidden="true" className="h-3.5 w-3.5" />
                     ) : (
-                      <Copy aria-hidden="true" className="h-4 w-4" />
+                      <Copy aria-hidden="true" className="h-3.5 w-3.5" />
                     )}
                     {copied ? "Copied" : "Copy findings"}
                   </Button>
@@ -187,7 +188,7 @@ export const LitigationBrief = React.memo(function LitigationBrief({
                     size="sm"
                     onClick={() => void handleExport("pdf")}
                   >
-                    <FileDown aria-hidden="true" className="h-4 w-4" />
+                    <FileDown aria-hidden="true" className="h-3.5 w-3.5" />
                     PDF
                   </Button>
                   <Button
@@ -195,84 +196,79 @@ export const LitigationBrief = React.memo(function LitigationBrief({
                     size="sm"
                     onClick={() => void handleExport("docx")}
                   >
-                    <FileType aria-hidden="true" className="h-4 w-4" />
+                    <FileType aria-hidden="true" className="h-3.5 w-3.5" />
                     Word
                   </Button>
-                  <span role="status" className="sr-only">
-                    {copied ? "Findings copied" : ""}
-                  </span>
                 </div>
               )}
+
               {actionError ? (
                 <p role="alert" className="text-sm text-destructive">
                   {actionError}
                 </p>
               ) : null}
 
-              <div
-                className={cn(
-                  "grid gap-8",
-                  isRejected ? null : "xl:grid-cols-[minmax(0,1fr)_26rem]",
-                )}
-              >
-                <div className="flex min-w-0 flex-col gap-6">
-                  <section>
-                    <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
-                      Scenario
-                    </h4>
-                    <p
-                      dir="auto"
-                      className="max-w-[68ch] whitespace-pre-wrap break-words rounded-control bg-secondary p-4 font-serif text-base leading-[1.65] text-foreground"
-                    >
-                      {result.raw_text || "No scenario text available."}
-                    </p>
-                  </section>
-
-                  {keywords.length > 0 ? (
-                    <section>
-                      <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
-                        Statutory keywords
-                      </h4>
-                      <ul className="flex flex-wrap gap-2">
-                        {keywords.map((keyword, index) => (
-                          <li key={`${keyword}-${index}`}>
-                            <Badge variant="default">{keyword}</Badge>
-                          </li>
-                        ))}
-                      </ul>
-                    </section>
-                  ) : null}
-
-                  <section>
-                    <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
-                      {isRejected ? "Result" : "Findings"}
-                    </h4>
-                    <div className="prose max-w-[68ch] font-serif prose-p:leading-[1.65] prose-li:leading-[1.65]">
-                      {cleanAnswer ? (
-                        <ReactMarkdown components={markdownComponents}>
-                          {cleanAnswer}
-                        </ReactMarkdown>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">
-                          No findings returned.
-                        </p>
-                      )}
-                    </div>
-                  </section>
+              {/* 1. Scenario */}
+              <section className="flex flex-col gap-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Scenario
+                </h4>
+                <div
+                  dir="auto"
+                  className="rounded-md border border-border bg-secondary/40 p-4 font-serif text-sm leading-relaxed text-foreground"
+                >
+                  {result.raw_text || "No scenario text available."}
                 </div>
+              </section>
 
-                {isRejected ? null : (
-                  <section>
-                    <h4 className="mb-2 text-xs font-semibold text-muted-foreground">
-                      Referenced authorities
-                    </h4>
-                    <PrecedentList
-                      precedents={result.precedents}
-                      precedentMeta={result.precedent_meta}
-                    />
-                  </section>
-                )}
-              </div>
+              {/* 2. Statutory Keywords */}
+              {keywords.length > 0 ? (
+                <section className="flex flex-col gap-2">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Statutory keywords
+                  </h4>
+                  <ul className="flex flex-wrap gap-1.5">
+                    {keywords.map((keyword, index) => (
+                      <li key={`${keyword}-${index}`}>
+                        <Badge variant="outline" className="font-mono text-[11px]">
+                          {keyword}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+
+              {/* 3. Legal Findings / Analysis (Wide across the top to minimize scrolling fatigue) */}
+              <section className="flex flex-col gap-2">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {isRejected ? "Result" : "Legal Analysis & Findings"}
+                </h4>
+                <div className="prose prose-neutral dark:prose-invert max-w-none font-serif text-base leading-relaxed prose-headings:font-sans prose-headings:font-semibold">
+                  {cleanAnswer ? (
+                    <ReactMarkdown components={markdownComponents}>
+                      {cleanAnswer}
+                    </ReactMarkdown>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No findings returned.
+                    </p>
+                  )}
+                </div>
+              </section>
+
+              {/* 4. Referenced Authorities (Cleanly placed at the END) */}
+              {isRejected ? null : (
+                <section className="flex flex-col gap-3 border-t border-border/80 pt-6">
+                  <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Referenced Authorities & Precedents
+                  </h4>
+                  <PrecedentList
+                    precedents={result.precedents}
+                    precedentMeta={result.precedent_meta}
+                  />
+                </section>
+              )}
             </div>
           </div>
         </div>

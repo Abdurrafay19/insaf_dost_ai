@@ -12,17 +12,17 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const variants: Record<NonNullable<BadgeProps["variant"]>, string> = {
-    default: "bg-muted text-foreground",
+    default: "border border-border bg-secondary text-foreground",
     outline: "border border-border bg-card text-muted-foreground",
-    success: "bg-success-tint text-success",
-    warning: "bg-warning-tint text-warning",
-    alert: "bg-destructive-tint text-destructive",
+    success: "border border-success/30 bg-success-tint text-success",
+    warning: "border border-warning/30 bg-warning-tint text-warning",
+    alert: "border border-destructive/30 bg-destructive-tint text-destructive",
   };
 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-1 text-xs font-medium leading-none",
+        "inline-flex items-center rounded px-2 py-0.5 text-xs font-medium leading-none",
         variants[variant],
         className,
       )}

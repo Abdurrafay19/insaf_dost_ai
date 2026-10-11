@@ -2,66 +2,66 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --header-h: 3.5rem;
 
-  --background: #f4f6f8;
-  --foreground: #0b1620;
+  --background: #fafafa;
+  --foreground: #18181b;
   --card: #ffffff;
-  --card-foreground: #0b1620;
+  --card-foreground: #18181b;
   --popover: #ffffff;
-  --popover-foreground: #0b1620;
-  --primary: #0b6b4a;
-  --primary-hover: #08563b;
+  --popover-foreground: #18181b;
+  --primary: #18181b;
+  --primary-hover: #27272a;
   --primary-foreground: #ffffff;
-  --secondary: #e9edf1;
-  --secondary-foreground: #0b1620;
-  --muted: #e9edf1;
-  --muted-foreground: #4b5b6b;
-  --accent: #e7f3ee;
-  --accent-foreground: #08563b;
-  --destructive: #b42318;
-  --destructive-tint: #fdecea;
-  --warning: #9a5b00;
-  --warning-tint: #fff4e0;
-  --success: #0b6b4a;
-  --success-tint: #e7f3ee;
-  /* Decorative dividers only. Never use for the edge of a control. */
-  --border: #d5dce3;
-  /* Any control edge (inputs, outline buttons). 3.09:1 on white. */
-  --border-strong: #8794a3;
-  --input: #8794a3;
-  --ring: #0b6b4a;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
+  --destructive: #b91c1c;
+  --destructive-tint: #fef2f2;
+  --warning: #b45309;
+  --warning-tint: #fffbeb;
+  --success: #15803d;
+  --success-tint: #f0fdf4;
+  --border: #e4e4e7;
+  --border-strong: #a1a1aa;
+  --input: #d4d4d8;
+  --ring: #18181b;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0c1218;
-    --foreground: #e6edf3;
-    --card: #121a22;
-    --card-foreground: #e6edf3;
-    --popover: #121a22;
-    --popover-foreground: #e6edf3;
-    --primary: #4cc59a;
-    --primary-hover: #6ad3ae;
-    --primary-foreground: #062a1d;
-    --secondary: #1a242e;
-    --secondary-foreground: #e6edf3;
-    --muted: #1a242e;
-    --muted-foreground: #93a1af;
-    --accent: #12261f;
-    --accent-foreground: #4cc59a;
-    --destructive: #ff8a80;
-    --destructive-tint: #2d1411;
-    --warning: #f0b24d;
-    --warning-tint: #2a2008;
-    --success: #4cc59a;
-    --success-tint: #12261f;
-    --border: #26323d;
-    --border-strong: #5b6a79;
-    --input: #5b6a79;
-    --ring: #4cc59a;
-  }
+.dark,
+:root.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  --card: #121215;
+  --card-foreground: #f4f4f5;
+  --popover: #121215;
+  --popover-foreground: #f4f4f5;
+  --primary: #fafafa;
+  --primary-hover: #e4e4e7;
+  --primary-foreground: #09090b;
+  --secondary: #1c1c20;
+  --secondary-foreground: #f4f4f5;
+  --muted: #1c1c20;
+  --muted-foreground: #a1a1aa;
+  --accent: #1c1c20;
+  --accent-foreground: #f4f4f5;
+  --destructive: #ef4444;
+  --destructive-tint: #2a1215;
+  --warning: #f59e0b;
+  --warning-tint: #2a1f0a;
+  --success: #22c55e;
+  --success-tint: #0f291e;
+  --border: #27272a;
+  --border-strong: #52525b;
+  --input: #3f3f46;
+  --ring: #fafafa;
 }
 
 @theme inline {
@@ -96,10 +96,8 @@
   --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular",
     Menlo, Consolas, monospace;
 
-  --radius-control: 0.625rem;
-  --radius-card: 0.875rem;
-  --shadow-card:
-    0 1px 2px rgb(11 22 32 / 0.06), 0 8px 24px -12px rgb(11 22 32 / 0.12);
+  --radius-control: 0.375rem;
+  --radius-card: 0.5rem;
 }
 
 html {
@@ -117,16 +115,12 @@ body {
   border-color: var(--border);
 }
 
-::selection {
-  background: color-mix(in oklab, var(--primary) 25%, transparent);
-}
-
 @layer base {
   h1,
   h2,
-  h3 {
-    letter-spacing: -0.02em;
-    text-wrap: balance;
+  h3,
+  h4 {
+    letter-spacing: -0.015em;
   }
 
   :focus-visible {
@@ -135,29 +129,14 @@ body {
   }
 }
 
-/* Translucent header material. Falls back to solid when the user asks for it. */
-.glass {
-  background: color-mix(in oklab, var(--background) 80%, transparent);
-  backdrop-filter: blur(20px) saturate(160%);
-  box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 8%, transparent);
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .glass {
-    background: var(--background);
-    backdrop-filter: none;
-  }
-}
-
-/* Long-form legal text: serif, 16px, 68 characters per line. */
+/* Long-form legal text: serif, 16px, comfortable line height. */
 .reading {
   font-family: var(--font-serif);
   font-size: 1rem;
-  line-height: 1.65;
-  max-width: 68ch;
+  line-height: 1.7;
 }
 
-/* Point the typography plugin at our tokens so light and dark both work. */
+/* Point typography plugin at our tokens */
 .prose {
   --tw-prose-body: var(--foreground);
   --tw-prose-headings: var(--foreground);

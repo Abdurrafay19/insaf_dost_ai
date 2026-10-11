@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function NotFound() {
   return (
@@ -14,8 +15,9 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="inline-flex h-11 items-center rounded-control bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary-hover"
+        className="inline-flex h-11 items-center justify-center gap-2 rounded-control bg-primary px-5 text-sm font-semibold text-primary-foreground transition-[background-color,transform] hover:bg-primary-hover active:scale-[0.98]"
       >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" />
         Back to InsafDost AI
       </Link>
     </main>

@@ -34,7 +34,7 @@ export function PrecedentList({
 
   if (precedents.length === 0) {
     return (
-      <p className="rounded-control bg-secondary p-4 text-sm text-muted-foreground">
+      <p className="rounded-md border border-dashed border-border bg-secondary/30 p-4 text-xs text-muted-foreground">
         No precedents were retrieved for this matter.
       </p>
     );
@@ -47,18 +47,17 @@ export function PrecedentList({
         const source = meta?.source ?? `Authority ${index + 1}`;
         const cleanText = precedent.replace(/\\n/g, "\n").trim();
         const isCopied = copiedIndex === index;
-        // The backend uses source "System" for its "nothing relevant found" notice.
         const isSystemNotice = meta?.source === "System";
 
         return (
-          <li key={index} className="rounded-control bg-secondary p-4">
+          <li key={index} className="rounded-md border border-border bg-card p-4">
             {isSystemNotice ? null : (
-              <div className="flex items-start justify-between gap-2">
-                <p className="min-w-0 break-words font-mono text-xs font-medium text-foreground">
+              <div className="flex items-center justify-between gap-2 border-b border-border/60 pb-2.5">
+                <p className="min-w-0 break-words font-mono text-xs font-semibold text-foreground">
                   {source}
                 </p>
-                <div className="flex shrink-0 items-center gap-1">
-                  <Badge variant="outline">
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Badge variant="outline" className="font-mono text-[11px]">
                     Relevance{" "}
                     {meta?.score !== undefined ? meta.score.toFixed(2) : "N/A"}
                   </Badge>
@@ -67,11 +66,12 @@ export function PrecedentList({
                     size="icon"
                     onClick={() => void handleCopy(index, source)}
                     aria-label={`Copy citation ${source}`}
+                    className="h-7 w-7"
                   >
                     {isCopied ? (
-                      <Check aria-hidden="true" className="h-4 w-4" />
+                      <Check aria-hidden="true" className="h-3.5 w-3.5" />
                     ) : (
-                      <Copy aria-hidden="true" className="h-4 w-4" />
+                      <Copy aria-hidden="true" className="h-3.5 w-3.5" />
                     )}
                   </Button>
                 </div>
@@ -80,7 +80,7 @@ export function PrecedentList({
             <p
               dir="auto"
               className={
-                "whitespace-pre-line break-words font-serif text-[0.9375rem] leading-relaxed text-foreground" +
+                "whitespace-pre-line break-words font-serif text-sm leading-relaxed text-foreground" +
                 (isSystemNotice ? "" : " mt-3")
               }
             >

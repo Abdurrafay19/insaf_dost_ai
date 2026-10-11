@@ -14,8 +14,8 @@ export default function OpengraphImage() {
           justifyContent: "space-between",
           width: "100%",
           height: "100%",
-          background: "#0b1620",
-          color: "#e6edf3",
+          background: "#09090b",
+          color: "#f4f4f5",
           padding: 80,
         }}
       >
@@ -24,7 +24,7 @@ export default function OpengraphImage() {
             display: "flex",
             fontSize: 34,
             fontWeight: 600,
-            color: "#4cc59a",
+            color: "#fafafa",
           }}
         >
           InsafDost AI
@@ -45,7 +45,7 @@ export default function OpengraphImage() {
               display: "flex",
               marginTop: 28,
               fontSize: 34,
-              color: "#93a1af",
+              color: "#a1a1aa",
             }}
           >
             Not legal advice. Verify every citation.
