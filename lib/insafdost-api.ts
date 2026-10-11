@@ -1,41 +1,16 @@
-import type {
-  AnalyzeStreamRequest,
-  BackendStatusState,
-  StreamEvent,
-} from "@/types/insafdost";
+import type { AnalyzeStreamRequest, StreamEvent } from "@/types/insafdost";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
+const FRIENDLY_STATUS_MESSAGES: Record<number, string> = {
+  422: "The request was rejected. Each matter must be 1 to 15,000 characters, and you can send at most 5 matters.",
+  429: "The service is busy. Wait a minute and try again.",
+  503: "The analysis engine is still starting up. Wait about a minute and try again.",
+};
+
 function buildApiUrl(path: string): string {
   return `${API_BASE_URL.replace(/\/$/, "")}${path}`;
-}
-
-export async function checkReady(
-  signal?: AbortSignal,
-): Promise<BackendStatusState> {
-  try {
-    const response = await fetch(buildApiUrl("/ready"), {
-      method: "GET",
-      cache: "no-store",
-      signal,
-    });
-
-    if (response.status === 200) {
-      return { ready: true, message: "Operational" };
-    }
-
-    if (response.status === 503) {
-      return { ready: false, message: "Engine Initializing (Loading Weights)" };
-    }
-
-    return {
-      ready: false,
-      message: `Service unavailable (status ${response.status})`,
-    };
-  } catch {
-    return { ready: false, message: "Unable to reach the analysis service" };
-  }
 }
 
 function parseEventChunk(chunk: string): StreamEvent | null {
@@ -81,19 +56,25 @@ export async function streamAnalysis(
   if (!response.ok || !response.body) {
     let detail = `Request failed with status ${response.status}`;
 
-    try {
-      const errorPayload: unknown = await response.json();
+    const friendly = FRIENDLY_STATUS_MESSAGES[response.status];
 
-      if (
-        errorPayload &&
-        typeof errorPayload === "object" &&
-        "detail" in errorPayload &&
-        typeof (errorPayload as { detail?: unknown }).detail === "string"
-      ) {
-        detail = (errorPayload as { detail: string }).detail;
+    if (friendly) {
+      detail = friendly;
+    } else {
+      try {
+        const errorPayload: unknown = await response.json();
+
+        if (
+          errorPayload &&
+          typeof errorPayload === "object" &&
+          "detail" in errorPayload &&
+          typeof (errorPayload as { detail?: unknown }).detail === "string"
+        ) {
+          detail = (errorPayload as { detail: string }).detail;
+        }
+      } catch {
+        // Non-JSON error body; fall back to the default message.
       }
-    } catch {
-      // Non-JSON error body; fall back to the default message.
     }
 
     throw new Error(detail);

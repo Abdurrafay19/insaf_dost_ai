@@ -1,30 +1,30 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-card">
-      <div className="mx-auto flex max-w-380 items-center px-4 py-3 sm:h-14 sm:px-8 sm:py-0">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="flex items-center gap-2">
-            <Image
-              src="/icon.png"
-              alt=""
-              width={28}
-              height={28}
-              priority
-              className="h-7 w-7"
-            />
-            <span className="font-heading text-base font-bold tracking-tight text-foreground">
-              InsafDost{" "}
-              <span className="font-sans text-xs font-normal uppercase tracking-wider text-muted-foreground">
-                AI
-              </span>
-            </span>
-          </div>
-          <span className="ml-1 border-l border-border pl-2.5 font-mono text-[11px] text-muted-foreground">
-            Pakistan Legal Research
+    <header className="glass sticky top-0 z-50 h-(--header-h) w-full">
+      <div className="mx-auto flex h-full max-w-380 items-center px-4 sm:px-8">
+        <Link
+          href="/"
+          aria-label="InsafDost AI home"
+          className="flex items-center gap-2.5 rounded-control"
+        >
+          <Image
+            src="/icon.png"
+            alt=""
+            width={28}
+            height={28}
+            priority
+            className="h-7 w-7"
+          />
+          <span className="text-base font-semibold tracking-tight text-foreground">
+            InsafDost AI
           </span>
-        </div>
+        </Link>
+        <span className="ml-3 hidden border-l border-border pl-3 text-sm text-muted-foreground sm:inline">
+          Pakistan legal research
+        </span>
       </div>
     </header>
   );

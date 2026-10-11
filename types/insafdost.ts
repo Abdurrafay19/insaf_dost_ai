@@ -32,11 +32,6 @@ export type StreamEvent =
   | { type: "error"; case_num: number; detail: string }
   | { type: "done" };
 
-export interface BackendStatusState {
-  ready: boolean;
-  message: string;
-}
-
 export interface AnalyzeStreamRequest {
   cases: string[];
 }
