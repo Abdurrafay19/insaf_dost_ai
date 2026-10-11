@@ -2,27 +2,66 @@
 @plugin "@tailwindcss/typography";
 
 :root {
-  --background: #fafaf9;
-  --foreground: #111827;
+  color-scheme: light dark;
+  --header-h: 3.5rem;
+
+  --background: #f4f6f8;
+  --foreground: #0b1620;
   --card: #ffffff;
-  --card-foreground: #111827;
+  --card-foreground: #0b1620;
   --popover: #ffffff;
-  --popover-foreground: #111827;
-  --primary: #1c1917;
-  --primary-foreground: #fafaf9;
-  --secondary: #f5f5f4;
-  --secondary-foreground: #111827;
-  --muted: #f5f5f4;
-  --muted-foreground: #57534e;
-  --accent: #f5f5f4;
-  --accent-foreground: #111827;
-  --destructive: #b91c1c;
-  --destructive-foreground: #fef2f2;
-  --success: #15803d;
-  --border: #e7e5e4;
-  --border-strong: #a8a29e;
-  --input: #e7e5e4;
-  --ring: #1c1917;
+  --popover-foreground: #0b1620;
+  --primary: #0b6b4a;
+  --primary-hover: #08563b;
+  --primary-foreground: #ffffff;
+  --secondary: #e9edf1;
+  --secondary-foreground: #0b1620;
+  --muted: #e9edf1;
+  --muted-foreground: #4b5b6b;
+  --accent: #e7f3ee;
+  --accent-foreground: #08563b;
+  --destructive: #b42318;
+  --destructive-tint: #fdecea;
+  --warning: #9a5b00;
+  --warning-tint: #fff4e0;
+  --success: #0b6b4a;
+  --success-tint: #e7f3ee;
+  /* Decorative dividers only. Never use for the edge of a control. */
+  --border: #d5dce3;
+  /* Any control edge (inputs, outline buttons). 3.09:1 on white. */
+  --border-strong: #8794a3;
+  --input: #8794a3;
+  --ring: #0b6b4a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0c1218;
+    --foreground: #e6edf3;
+    --card: #121a22;
+    --card-foreground: #e6edf3;
+    --popover: #121a22;
+    --popover-foreground: #e6edf3;
+    --primary: #4cc59a;
+    --primary-hover: #6ad3ae;
+    --primary-foreground: #062a1d;
+    --secondary: #1a242e;
+    --secondary-foreground: #e6edf3;
+    --muted: #1a242e;
+    --muted-foreground: #93a1af;
+    --accent: #12261f;
+    --accent-foreground: #4cc59a;
+    --destructive: #ff8a80;
+    --destructive-tint: #2d1411;
+    --warning: #f0b24d;
+    --warning-tint: #2a2008;
+    --success: #4cc59a;
+    --success-tint: #12261f;
+    --border: #26323d;
+    --border-strong: #5b6a79;
+    --input: #5b6a79;
+    --ring: #4cc59a;
+  }
 }
 
 @theme inline {
@@ -33,6 +72,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -41,20 +81,30 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-tint: var(--destructive-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
   --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
   --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: system-ui, -apple-system, sans-serif;
-  --font-serif: var(--font-source-serif);
-  --font-heading: var(--font-domine);
-  --font-mono: var(--font-jetbrains-mono);
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular",
+    Menlo, Consolas, monospace;
+
+  --radius-control: 0.625rem;
+  --radius-card: 0.875rem;
+  --shadow-card:
+    0 1px 2px rgb(11 22 32 / 0.06), 0 8px 24px -12px rgb(11 22 32 / 0.12);
 }
 
 html {
   min-height: 100%;
+  scroll-padding-top: calc(var(--header-h) + 1rem);
 }
 
 body {
@@ -67,20 +117,76 @@ body {
   border-color: var(--border);
 }
 
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
+::selection {
+  background: color-mix(in oklab, var(--primary) 25%, transparent);
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+@layer base {
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+/* Translucent header material. Falls back to solid when the user asks for it. */
+.glass {
+  background: color-mix(in oklab, var(--background) 80%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 1px 0 color-mix(in oklab, var(--foreground) 8%, transparent);
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--background);
+    backdrop-filter: none;
+  }
+}
+
+/* Long-form legal text: serif, 16px, 68 characters per line. */
+.reading {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  line-height: 1.65;
+  max-width: 68ch;
+}
+
+/* Point the typography plugin at our tokens so light and dark both work. */
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--muted-foreground);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--border-strong);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--secondary);
+  --tw-prose-th-borders: var(--border-strong);
+  --tw-prose-td-borders: var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

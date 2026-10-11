@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "secondary" | "outline" | "ghost";
-  size?: "default" | "sm" | "lg";
+  size?: "default" | "sm" | "lg" | "icon";
 }
 
 export function Button({
@@ -16,25 +16,27 @@ export function Button({
 }: ButtonProps) {
   const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
     default:
-      "bg-primary text-primary-foreground border-primary hover:bg-stone-800",
+      "border border-transparent bg-primary text-primary-foreground hover:bg-primary-hover",
     secondary:
-      "bg-secondary text-secondary-foreground border-border hover:bg-muted",
-    outline: "bg-card text-foreground border-border hover:border-border-strong",
+      "border border-transparent bg-secondary text-secondary-foreground hover:bg-muted",
+    outline:
+      "border border-border-strong bg-card text-foreground hover:bg-secondary",
     ghost:
-      "bg-transparent border-transparent text-foreground hover:bg-secondary",
+      "border border-transparent bg-transparent text-foreground hover:bg-secondary",
   };
 
   const sizes: Record<NonNullable<ButtonProps["size"]>, string> = {
-    default: "h-11 px-5 py-2.5",
-    sm: "h-9 px-3.5 py-2 text-sm",
-    lg: "h-12 px-6 py-3 text-base",
+    default: "h-11 px-5 text-sm",
+    sm: "h-10 px-3.5 text-sm",
+    lg: "h-12 px-6 text-base",
+    icon: "h-10 w-10 p-0 text-sm",
   };
 
   return (
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-none border font-mono text-xs font-semibold uppercase tracking-wider transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-900 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-control font-semibold transition-[background-color,transform] duration-100 active:scale-[0.98] motion-reduce:active:scale-100 disabled:pointer-events-none disabled:opacity-50",
         variants[variant],
         sizes[size],
         className,
