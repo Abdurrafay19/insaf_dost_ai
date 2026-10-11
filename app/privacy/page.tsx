@@ -55,11 +55,11 @@ export default function PrivacyPage() {
 
         <h2>What our analysis service logs</h2>
         <p>
-          The analysis service writes operational logs. The logs include the
-          first 60 characters of each matter, plus the search terms and model
-          outputs produced while analyzing it. Hugging Face stores those logs
-          and controls how long they are kept. We do not copy submissions into
-          a database.
+          The analysis service writes operational logs. Log lines contain the
+          length of each matter, its category, and error types. They do not
+          contain the text of your matters or the search terms extracted from
+          them. Hugging Face stores those logs and controls how long they are
+          kept. We do not copy submissions into a database.
         </p>
 
         <h2>On your device</h2>
